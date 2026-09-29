@@ -90,6 +90,17 @@
       if (!res.ok) throw new Error(serverMsg(json, "Nie udało się zapisać (" + res.status + ")."));
       if (typeof json.sha === "string") fileSha = json.sha;
     },
+    async stats(days) {
+      const { res, json } = await workerCall("GET", "/stats?days=" + days);
+      if (res.status === 401) throw new Expired();
+      if (res.status === 404) throw new Error("Serwer logowania w Cloudflare ma starszą wersję kodu bez statystyk. Wgraj najnowszy plik worker/admin-api.js (Edit code -> Deploy), instrukcja w worker/README.md.");
+      if (!res.ok) {
+        const e = new Error(serverMsg(json, "Nie udało się pobrać statystyk (" + res.status + ")."));
+        e.setup = res.status === 501;  // Worker nie ma jeszcze klucza GoatCountera
+        throw e;
+      }
+      return json;
+    },
   };
 
   /* ---------- sesja ---------- */
@@ -114,6 +125,9 @@
     fileSha = null;
     sessionUntil = 0;
     clearInputs();
+    statsSeq++;
+    $("stats").hidden = true;
+    $("stats-body").hidden = true;
     $("editor").hidden = true;
     $("login").hidden = false;
     $("logout").hidden = true;
@@ -127,6 +141,130 @@
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => lock("Sesja wygasła po 10 minutach bezczynności. Zaloguj się ponownie."), IDLE_MS);
   }
+
+  /* ---------- statystyki (dane z GoatCountera pobiera Worker) ---------- */
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const nf = (n) => Number(n || 0).toLocaleString("pl-PL");
+  const int = (v) => (Number.isFinite(v) && v >= 0 ? Math.round(v) : 0);
+  const str = (v, n = 80) => (typeof v === "string" ? v.slice(0, n) : "");
+  const rows = (v) => (Array.isArray(v) ? v.filter((x) => x && typeof x === "object") : []);
+  let statsSeq = 0;      // odrzuca spozniona odpowiedz, gdy uzytkownik zdazyl zmienic zakres albo sie wylogowac
+
+  const DEVICES_PL = { Phones: "Telefony", "Large phones": "Duże telefony", Tablets: "Tablety", "Computer monitors": "Komputery", "Larger monitors": "Duże monitory", "(unknown)": "Nieznane" };
+  let regionNames = null;
+  try { regionNames = new Intl.DisplayNames(["pl"], { type: "region" }); } catch (_) { /* starsza przegladarka: zostaja nazwy z GoatCountera */ }
+  const countryName = (r) => {
+    const id = str(r.id, 10).toUpperCase();
+    if (regionNames && /^[A-Z]{2}$/.test(id)) { try { return regionNames.of(id) || str(r.name); } catch (_) { /* nieznany kod */ } }
+    return str(r.name) || "Nieznany";
+  };
+  function clickLabel(c) {
+    const path = str(c.path, 120), name = str(c.name, 100);
+    if (path.startsWith("film/")) {
+      const v = knownVideos().find((x) => x.id === path.slice(5));
+      return v && v.title ? "Film: " + v.title : name && name !== path ? name : "Film " + path.slice(5);
+    }
+    return name && name !== path ? name : path.replace(/^klik\//, "");
+  }
+
+  function fillBars(ul, list, emptyText) {
+    ul.replaceChildren();
+    if (!list.length) {
+      const li = document.createElement("li");
+      li.className = "adm-empty";
+      li.textContent = emptyText;
+      ul.append(li);
+      return;
+    }
+    const max = Math.max(1, ...list.map((r) => r.count));
+    list.forEach((r) => {
+      const li = document.createElement("li");
+      li.className = "adm-bar-row";
+      const label = document.createElement("span");
+      label.className = "adm-bar-label";
+      label.textContent = r.label;
+      const num = document.createElement("span");
+      num.className = "adm-bar-num";
+      num.textContent = nf(r.count);
+      const fill = document.createElement("span");
+      fill.className = "adm-bar-fill";
+      fill.style.setProperty("--w", Math.max(2, Math.round((r.count / max) * 100)) + "%");
+      li.append(label, num, fill);
+      ul.append(li);
+    });
+  }
+
+  function drawChart(daily) {
+    const box = $("stats-chart");
+    box.replaceChildren();
+    if (!daily.length) { $("stats-axis").textContent = ""; return; }
+    const W = 300, H = 90, n = daily.length, bw = W / n, gap = n > 45 ? 0.6 : 1.6;
+    const max = Math.max(0, ...daily.map((d) => d.count));
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.setAttribute("class", "adm-chart-svg");
+    daily.forEach((d, i) => {
+      const h = d.count ? Math.max(2, (d.count / max) * (H - 4)) : 1;
+      const r = document.createElementNS(SVG_NS, "rect");
+      r.setAttribute("x", (i * bw + gap / 2).toFixed(2));
+      r.setAttribute("y", (H - h).toFixed(2));
+      r.setAttribute("width", Math.max(0.5, bw - gap).toFixed(2));
+      r.setAttribute("height", h.toFixed(2));
+      r.setAttribute("class", d.count ? "adm-bar" : "adm-bar adm-bar-zero");
+      const t = document.createElementNS(SVG_NS, "title");
+      t.textContent = d.day + ": " + nf(d.count);
+      r.append(t);
+      svg.append(r);
+    });
+    box.append(svg);
+    $("stats-axis").textContent = daily[0].day + " → " + daily[n - 1].day + ", najwięcej w jeden dzień: " + nf(max);
+  }
+
+  function renderStats(data) {
+    const daily = rows(data.daily).map((d) => ({ day: str(d.day, 10), count: int(d.count) }));
+    const clicks = rows(data.clicks).map((c) => ({ path: str(c.path, 120), label: clickLabel(c), count: int(c.count) }));
+    const film = clicks.filter((c) => c.path.startsWith("film/")).reduce((n, c) => n + c.count, 0);
+    const links = clicks.filter((c) => !c.path.startsWith("film/")).reduce((n, c) => n + c.count, 0);
+    const visitors = int(data.visitors);
+
+    $("kpi-visitors").textContent = nf(visitors);
+    $("kpi-today").textContent = nf(int(data.today));
+    $("kpi-links").textContent = nf(links);
+    $("kpi-films").textContent = nf(film);
+    $("stats-empty").hidden = visitors > 0 || clicks.length > 0;
+    drawChart(daily);
+    fillBars($("stats-clicks"), clicks, "Jeszcze nikt niczego nie kliknął.");
+    fillBars($("stats-refs"), rows(data.refs).map((r) => ({ label: str(r.name) === "(brak)" ? "Wejście bezpośrednie lub bez źródła" : str(r.name) || "Bezpośrednio", count: int(r.count) })), "Brak danych.");
+    fillBars($("stats-countries"), rows(data.countries).map((r) => ({ label: countryName(r), count: int(r.count) })), "Brak danych.");
+    fillBars($("stats-devices"), rows(data.devices).map((r) => ({ label: DEVICES_PL[str(r.name)] || str(r.name), count: int(r.count) })), "Brak danych.");
+  }
+
+  async function loadStats(days) {
+    const seq = ++statsSeq;
+    document.querySelectorAll("[data-days]").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.days) === days)));
+    showError($("stats-error"), "");
+    $("stats-setup").hidden = true;
+    $("stats-status").textContent = "Ładuję…";
+    try {
+      const data = await backend.stats(days);
+      if (seq !== statsSeq || !token) return;
+      renderStats(data);
+      $("stats-body").hidden = false;
+    } catch (e) {
+      if (seq !== statsSeq || !token) return;
+      if (e instanceof Expired) return lock("Sesja wygasła. Zaloguj się ponownie.");
+      $("stats-body").hidden = true;
+      if (e.setup) $("stats-setup").hidden = false;
+      else showError($("stats-error"), e.message || "Nie udało się pobrać statystyk.");
+    } finally {
+      if (seq === statsSeq) $("stats-status").textContent = "";
+    }
+  }
+  const currentDays = () => {
+    const b = document.querySelector("[data-days][aria-pressed=true]");
+    return b ? Number(b.dataset.days) : 30;
+  };
 
   /* ---------- formularz ---------- */
   const val = (id) => $(id).value.trim();
@@ -320,6 +458,8 @@
       const overrides = await backend.login(cred);
       fill(overrides);
       $("login").hidden = true;
+      $("stats").hidden = false;
+      loadStats(currentDays());
       $("editor").hidden = false;
       $("logout").hidden = false;
       setStatus(loggedStatus());
@@ -341,6 +481,12 @@
     if (res.ok && json.totp === false) { $("w-code-wrap").hidden = true; $("w-no2fa").hidden = false; }
     else if (!res.ok) showError($("login-error"), serverMsg(json, "Serwer logowania zgłasza błąd (" + res.status + ")."));
   }).catch((e) => showError($("login-error"), e.message));
+  document.querySelectorAll("[data-days]").forEach((b) => on(b, "click", () => loadStats(Number(b.dataset.days))));
+  on($("stats-refresh"), "click", () => loadStats(currentDays()));
+  {
+    const code = CFG.analytics && CFG.analytics.goatcounter;
+    if (typeof code === "string" && /^[a-z0-9-]{2,40}$/.test(code)) $("stats-link").href = "https://" + code + ".goatcounter.com";
+  }
   on($("editor"), "submit", (e) => { e.preventDefault(); save(); });
   on($("add-video"), "click", addVideo);
   on($("new-video-url"), "keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addVideo(); } });

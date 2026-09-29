@@ -10,6 +10,7 @@
      SESSION_SECRET  losowy ciag do podpisywania sesji (min. 32 znaki), wygenerujesz go na /admin/setup.html
      GITHUB_TOKEN    fine-grained token: tylko repo tymonekk.github.io, Contents: Read and write
      TOTP_SECRET     (opcjonalnie, polecane) sekret 2FA w base32 z /admin/setup.html
+     GOATCOUNTER_TOKEN  (opcjonalnie) token GoatCounter z uprawnieniem "Read statistics"; wlacza karte statystyk w panelu
    Powiazanie KV (Settings -> Bindings -> KV namespace), nazwa zmiennej: KV. Trzyma liczniki nieudanych logowan. */
 
 const ORIGIN = "https://tymonekk.github.io"; // jedyna strona, ktora moze uzywac tego API
@@ -244,6 +245,100 @@ async function readFile(env) {
   return { overrides: parseOverrides(b64Decode(j.content || "")), sha: j.sha };
 }
 
+/* ---------- Statystyki (GoatCounter) ---------- */
+const GC_SITE = "https://369shoter.goatcounter.com";
+const STATS_DAYS = [7, 30, 90];
+const GC_GAP_MS = 300;                      // GoatCounter limituje API do ok. 4 zapytan na sekunde
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const cleanText = (v, n = 80) => String(v == null ? "" : v).replace(/[\u0000-\u001f\u007f<>]/g, "").trim().slice(0, n);
+const count = (v) => (Number.isFinite(v) && v >= 0 ? Math.round(v) : 0);
+const isoHour = (d) => d.toISOString().replace(/\.\d+Z$/, "Z");
+const dayStr = (d) => d.toISOString().slice(0, 10);
+const byCount = (a, b) => b.count - a.count;
+
+async function gcGet(env, path, params) {
+  const url = (env.GOATCOUNTER_URL || GC_SITE) + "/api/v0" + path + "?" + new URLSearchParams(params);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const r = await fetch(url, { headers: { authorization: "Bearer " + env.GOATCOUNTER_TOKEN, accept: "application/json" } });
+    if (r.status === 429) { await sleep(1100); continue; }
+    if (r.status === 401 || r.status === 403) throw new Error("gc-auth");
+    if (!r.ok) throw new Error("gc-" + r.status);
+    return r.json();
+  }
+  throw new Error("gc-429");
+}
+
+async function collectStats(env, days) {
+  const now = Date.now();
+  const first = new Date(now - (days - 1) * 86400e3);
+  first.setUTCHours(0, 0, 0, 0);
+  const range = { start: isoHour(first), end: isoHour(new Date(Math.ceil(now / 3600e3) * 3600e3)) };
+
+  const hits = await gcGet(env, "/stats/hits", { ...range, limit: 100, group: "day" });
+  const pages = [], clicks = [], perDay = new Map();
+  for (const h of Array.isArray(hits.hits) ? hits.hits : []) {
+    if (!isObj(h)) continue;
+    const item = { name: cleanText(h.title) || cleanText(h.path), path: cleanText(h.path, 120), count: count(h.count) };
+    if (h.event) { clicks.push(item); continue; }
+    pages.push(item);
+    for (const s of Array.isArray(h.stats) ? h.stats : []) {
+      if (isObj(s) && typeof s.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s.day)) perDay.set(s.day, (perDay.get(s.day) || 0) + count(s.daily));
+    }
+  }
+
+  // Wszystkie dni z zakresu (takze te bez odwiedzin), najnowszy na koncu.
+  const daily = [];
+  for (let i = 0; i < days; i++) {
+    const d = dayStr(new Date(first.getTime() + i * 86400e3));
+    daily.push({ day: d, count: perDay.get(d) || 0 });
+    perDay.delete(d);
+  }
+  for (const [day, c] of perDay) daily.push({ day, count: c }); // dni w innej strefie czasowej niz UTC
+  daily.sort((a, b) => (a.day < b.day ? -1 : 1));
+  const shown = daily.slice(-days);
+
+  // Listy dodatkowe: gdy ich pobranie sie nie uda, panel po prostu pokaze pusta liste (poza bledem klucza).
+  const list = async (page) => {
+    await sleep(GC_GAP_MS);
+    try {
+      const j = await gcGet(env, "/stats/" + page, { ...range, limit: 10 });
+      return (Array.isArray(j.stats) ? j.stats : []).filter(isObj).slice(0, 10)
+        .map((s) => ({ name: cleanText(s.name) || "(brak)", id: cleanText(s.id, 10), count: count(s.count) })).sort(byCount);
+    } catch (e) { if (e.message === "gc-auth") throw e; return []; }
+  };
+  const refs = await list("toprefs");
+  const countries = await list("locations");
+  const devices = await list("sizes");
+
+  return {
+    days,
+    from: shown.length ? shown[0].day : dayStr(first),
+    visitors: pages.reduce((n, p) => n + p.count, 0),
+    today: shown.length ? shown[shown.length - 1].count : 0,
+    daily: shown,
+    pages: pages.sort(byCount).slice(0, 10),
+    clicks: clicks.sort(byCount).slice(0, 25),
+    refs,
+    countries,
+    devices,
+  };
+}
+
+async function handleStats(request, env) {
+  if (!env.GOATCOUNTER_TOKEN) {
+    return reply(env, { error: "Statystyki nie są jeszcze włączone. Dodaj sekret GOATCOUNTER_TOKEN w Cloudflare (instrukcja w worker/README.md).", setup: true }, 501);
+  }
+  const days = Number(new URL(request.url).searchParams.get("days") || 30);
+  if (!STATS_DAYS.includes(days)) return reply(env, { error: "days: 7, 30 albo 90." }, 400);
+  try {
+    return reply(env, await collectStats(env, days));
+  } catch (e) {
+    if (e.message === "gc-auth") return reply(env, { error: "GoatCounter odrzucił klucz. Sprawdź, czy token ma uprawnienie „Read statistics” i czy jest z konta 369shoter." }, 502);
+    return reply(env, { error: "Nie udało się pobrać statystyk z GoatCountera." }, 502);
+  }
+}
+
 /* ---------- start i konfiguracja ---------- */
 function configError(env) {
   const missing = ["ADMIN_PASSWORD", "SESSION_SECRET", "GITHUB_TOKEN"].filter((k) => !env[k]);
@@ -334,6 +429,10 @@ export default {
     if (url.pathname === "/overrides" && (request.method === "GET" || request.method === "PUT")) {
       if (!(await verifySession(env, request))) return reply(env, { error: "Sesja wygasła. Zaloguj się ponownie." }, 401);
       return handleOverrides(request, env);
+    }
+    if (url.pathname === "/stats" && request.method === "GET") {
+      if (!(await verifySession(env, request))) return reply(env, { error: "Sesja wygasła. Zaloguj się ponownie." }, 401);
+      return handleStats(request, env);
     }
     return reply(env, { error: "Nie znaleziono." }, 404);
   },

@@ -52,3 +52,29 @@ html:not(.unframed) body { display: none; }
 .adm-secret-small { font-size: 13px; font-weight: 500; }
 .adm-row-check { grid-template-columns: 1fr auto; }
 .adm-mode { display: grid; gap: 12px; }
+
+/* Statystyki */
+.adm-stats-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.adm-seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px; gap: 2px; background: var(--bg); }
+.adm-seg-btn { border: 0; border-radius: 999px; padding: 8px 14px; min-height: 36px; background: transparent; color: var(--muted); font: 600 14px/1 var(--font-body); cursor: pointer; }
+.adm-seg-btn[aria-pressed="true"] { background: var(--accent); color: #0a0d0a; }
+.adm-seg-btn:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.adm-note { padding: 12px 14px; border-radius: 14px; border: 1px dashed var(--line-strong); }
+.adm-stats-body { display: grid; gap: 16px; }
+.adm-kpis { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.adm-kpi { display: grid; gap: 4px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
+.adm-kpi-num { font: 900 clamp(34px, 7vw, 46px)/1 var(--font-display); }
+.adm-kpi-label { color: var(--muted); font-size: 14px; }
+.adm-chart { height: 130px; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
+.adm-chart-svg { display: block; width: 100%; height: 100%; }
+.adm-bar { fill: var(--accent); }
+.adm-bar-zero { fill: var(--line-strong); }
+.adm-axis { margin-top: -8px; font-size: 14px; }
+.adm-lists { display: grid; gap: 8px 24px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.adm-bars { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.adm-bar-row { position: relative; isolation: isolate; display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 8px 10px; border-radius: 10px; overflow: hidden; font-size: 15px; }
+.adm-bar-label { min-width: 0; overflow-wrap: anywhere; }
+.adm-bar-num { font-weight: 700; font-variant-numeric: tabular-nums; }
+.adm-bar-fill { position: absolute; inset: 0 auto 0 0; width: var(--w, 0%); background: var(--accent); opacity: .2; z-index: -1; border-radius: inherit; }
+.adm-stats-foot { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.adm-link { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px; font-size: 15px; }

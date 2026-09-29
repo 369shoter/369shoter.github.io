@@ -47,6 +47,44 @@
       <p class="adm-error" id="login-error" role="alert" hidden></p>
     </section>
 
+    <!-- 1b. Statystyki odwiedzin (dane z GoatCountera pobiera Worker; po zalogowaniu) -->
+    <section class="adm-card" id="stats" hidden>
+      <div class="adm-stats-head">
+        <h2 class="adm-h">Statystyki</h2>
+        <div class="adm-seg" role="group" aria-label="Zakres dat">
+          <button class="adm-seg-btn" type="button" data-days="7" aria-pressed="false">7 dni</button>
+          <button class="adm-seg-btn" type="button" data-days="30" aria-pressed="true">30 dni</button>
+          <button class="adm-seg-btn" type="button" data-days="90" aria-pressed="false">90 dni</button>
+        </div>
+      </div>
+      <p class="adm-p" id="stats-status" role="status"></p>
+      <p class="adm-error" id="stats-error" role="alert" hidden></p>
+      <div class="adm-note" id="stats-setup" hidden>
+        <p class="adm-p"><b>Statystyki wymagają jednorazowego kroku.</b> Serwer nie ma jeszcze klucza do GoatCountera. Wejdź na goatcounter.com → Settings → <b>API</b> → <b>Create new token</b> z uprawnieniem <b>Read statistics</b>, a potem dodaj go w Cloudflare jako sekret <code>GOATCOUNTER_TOKEN</code> (szczegóły w <code>worker/README.md</code>).</p>
+      </div>
+      <div class="adm-stats-body" id="stats-body" hidden>
+        <div class="adm-kpis">
+          <div class="adm-kpi"><span class="adm-kpi-num" id="kpi-visitors">0</span><span class="adm-kpi-label">Odwiedzający w tym okresie</span></div>
+          <div class="adm-kpi"><span class="adm-kpi-num" id="kpi-today">0</span><span class="adm-kpi-label">Dzisiaj</span></div>
+          <div class="adm-kpi"><span class="adm-kpi-num" id="kpi-links">0</span><span class="adm-kpi-label">Kliknięcia w linki</span></div>
+          <div class="adm-kpi"><span class="adm-kpi-num" id="kpi-films">0</span><span class="adm-kpi-label">Otwarcia filmów</span></div>
+        </div>
+        <p class="adm-p" id="stats-empty" hidden>Jeszcze brak danych. Pierwsze wejścia pojawią się po pierwszych odwiedzinach strony przez inne osoby (wejścia z localhost i boty się nie liczą). Dane w GoatCounter odświeżają się co kilka minut.</p>
+        <div class="adm-chart" id="stats-chart" role="img" aria-label="Odwiedzający dzień po dniu"></div>
+        <p class="adm-p adm-axis" id="stats-axis"></p>
+        <div class="adm-lists">
+          <div><h3 class="adm-h3">Co klikają</h3><ul class="adm-bars" id="stats-clicks"></ul></div>
+          <div><h3 class="adm-h3">Skąd przychodzą</h3><ul class="adm-bars" id="stats-refs"></ul></div>
+          <div><h3 class="adm-h3">Kraje</h3><ul class="adm-bars" id="stats-countries"></ul></div>
+          <div><h3 class="adm-h3">Urządzenia</h3><ul class="adm-bars" id="stats-devices"></ul></div>
+        </div>
+      </div>
+      <div class="adm-stats-foot">
+        <button class="btn btn-ghost btn-sm" type="button" id="stats-refresh">Odśwież</button>
+        <a class="adm-link" id="stats-link" href="https://369shoter.goatcounter.com" target="_blank" rel="noopener noreferrer">Pełne statystyki w GoatCounter</a>
+      </div>
+    </section>
+
     <!-- 2. Edytor (pokazywany dopiero po zalogowaniu) -->
     <form class="adm-editor" id="editor" hidden autocomplete="off" novalidate>
       <section class="adm-card">

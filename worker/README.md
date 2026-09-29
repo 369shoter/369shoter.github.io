@@ -91,6 +91,22 @@ Kliknij **Deploy**, żeby sekrety zaczęły działać. Bez `TOTP_SECRET` panel w
    w `connect-src` w `admin/index.html`. Jeśli kiedyś zmienisz nazwę Workera, zmień oba.
 3. `https://tymonekk.github.io/admin/` pyta o hasło i kod 2FA.
 
+### 8. Statystyki odwiedzin w panelu (opcjonalnie)
+
+Po zalogowaniu panel może pokazać, ile osób weszło na stronę, co klikają, skąd przychodzą i z jakich krajów
+i urządzeń (dane zbiera GoatCounter). Serwer pobiera je za Ciebie, więc klucz do GoatCountera leży tylko
+w Cloudflare i nie trafia do przeglądarki.
+
+1. Zaloguj się na https://369shoter.goatcounter.com, wejdź w **Settings** -> zakładka **API** -> **Create new token**.
+2. Zaznacz tylko uprawnienie **Read statistics** (nic więcej) i utwórz token. Skopiuj go.
+3. W Cloudflare: Worker -> **Settings** -> **Variables and Secrets** -> **Add**, typ **Secret**, nazwa
+   `GOATCOUNTER_TOKEN`, wartość: token z GoatCountera. Kliknij **Deploy**.
+4. Odśwież panel. Nad ustawieniami pojawi się karta **Statystyki** (przełącznik 7 / 30 / 90 dni).
+
+Bez tego sekretu panel działa jak dotąd, a karta pokazuje tylko instrukcję. Token z uprawnieniem *Read statistics*
+pozwala wyłącznie czytać liczby odwiedzin, nie zmienia niczego w GoatCounterze. Wejścia z komputera, na którym
+używasz panelu, też się liczą (GoatCounter pomija tylko localhost i boty).
+
 ## Zmiana hasła, wylogowanie wszystkich
 
 - **Nowe hasło**: zmień sekret `ADMIN_PASSWORD` w Cloudflare (i **Deploy**). Działa od razu.
