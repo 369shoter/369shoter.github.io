@@ -74,7 +74,7 @@ dla każdej z czterech wartości, nazwy dokładnie takie:
 
 | Nazwa | Wartość |
 | --- | --- |
-| `ADMIN_PASSWORD` | hasło z generatora (min. 12 znaków) |
+| `ADMIN_PASSWORD` | hasło z generatora albo własne (min. 5 znaków, im dłuższe, tym lepiej) |
 | `SESSION_SECRET` | klucz sesji z generatora (min. 32 znaki) |
 | `TOTP_SECRET` | klucz 2FA z generatora, bez spacji |
 | `GITHUB_TOKEN` | token z kroku 3 |

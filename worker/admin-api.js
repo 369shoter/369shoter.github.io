@@ -6,7 +6,7 @@
    ustawienia strony, nie kod.
 
    Sekrety (Cloudflare -> Worker -> Settings -> Variables and Secrets), wszystkie typu "Secret":
-     ADMIN_PASSWORD  haslo do panelu (min. 12 znakow)
+     ADMIN_PASSWORD  haslo do panelu (min. 5 znakow)
      SESSION_SECRET  losowy ciag do podpisywania sesji (min. 32 znaki), wygenerujesz go na /admin/setup.html
      GITHUB_TOKEN    fine-grained token: tylko repo tymonekk.github.io, Contents: Read and write
      TOTP_SECRET     (opcjonalnie, polecane) sekret 2FA w base32 z /admin/setup.html
@@ -249,7 +249,7 @@ function configError(env) {
   const missing = ["ADMIN_PASSWORD", "SESSION_SECRET", "GITHUB_TOKEN"].filter((k) => !env[k]);
   if (!env.KV) missing.push("KV (powiązanie)");
   if (missing.length) return "Brakuje ustawień w Cloudflare: " + missing.join(", ") + ".";
-  if (env.ADMIN_PASSWORD.length < 12) return "ADMIN_PASSWORD jest za krótkie (minimum 12 znaków).";
+  if (env.ADMIN_PASSWORD.length < 5) return "ADMIN_PASSWORD jest za krótkie (minimum 5 znaków).";
   if (env.SESSION_SECRET.length < 32) return "SESSION_SECRET jest za krótki (minimum 32 znaki).";
   if (env.TOTP_SECRET && base32Decode(env.TOTP_SECRET).length < 10) return "TOTP_SECRET jest nieprawidłowy.";
   return "";
