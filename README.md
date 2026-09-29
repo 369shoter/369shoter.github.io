@@ -47,6 +47,15 @@ Uwaga: lista ostatnich filmów z TikToka ma ok. 12 pozycji. Starszy hit, który 
 dopisz ręcznie w `videos` w `js/config.js` (patrz niżej), a strona zacznie go
 uwzględniać w rankingu.
 
+## Animacje i ustawienie systemu „ogranicz ruch”
+
+Animacje (wejście strony, wjazd sekcji, karty filmów, liczby, kafelki, pasek postępu)
+działają u wszystkich, także gdy w systemie jest włączone „ogranicz ruch” (u wielu osób
+włącza się ono przypadkiem, np. przez wyłączone „Animacje w systemie” w Windowsie).
+Tylko dwa efekty, które najczęściej powodują zawroty głowy, są pomijane przy tym ustawieniu:
+przesuwanie okładek za kursorem oraz dryf okładek przy przewijaniu. Odpowiadają za to bloki
+z `prefers-reduced-motion` na końcu `css/style.css` i warunek `reduceMotion` w `js/main.js`.
+
 ## Co zmieniasz ręcznie
 
 Prawie wszystko jest w jednym pliku: **`js/config.js`**. Można go edytować

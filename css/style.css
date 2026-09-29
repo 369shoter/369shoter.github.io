@@ -407,8 +407,12 @@ a.tile-ig:hover .tile-arrow, a.tile-yt:hover .tile-arrow, .tile-discord:has(.til
 .footer-links a:hover { color: var(--accent-ink); }
 .footer-note { width: 100%; color: var(--muted); font-size: 14px; }
 
-/* ---------- Ruch ---------- */
-@media (prefers-reduced-motion: no-preference) {
+/* ---------- Ruch ----------
+   Animacje dzialaja u wszystkich, takze przy wlaczonym w systemie "ogranicz ruch" (czesto wlaczanym
+   przypadkiem, np. przez wylaczone "Animacje w systemie" w Windowsie). Wylaczone dla takich osob
+   zostaja tylko paralaksa za kursorem i dryf przy przewijaniu, czyli efekty, ktore najczesciej
+   powoduja zle samopoczucie (patrz blok na koncu pliku). */
+@media all {
   @keyframes rise { from { opacity: 0; translate: 0 26px; } }
   @keyframes drop-in { from { opacity: 0; translate: 0 44px; scale: .94; } }
   @keyframes pop { from { opacity: 0; scale: .94; translate: 0 12px; } }
@@ -431,12 +435,6 @@ a.tile-ig:hover .tile-arrow, a.tile-yt:hover .tile-arrow, .tile-discord:has(.til
   .hero-cta      { animation: rise .9s var(--ease) both .62s; }
   .shot          { animation: drop-in 1s var(--ease) both; animation-delay: calc(.35s + var(--i, 0) * .12s); }
   .hero-avatar   { animation: drop-in 1s var(--ease) both .8s; }
-
-  /* Glebia: okladki i awatar reaguja na kursor (zmienne --px/--py ustawia main.js) */
-  .shot, .hero-avatar {
-    translate: calc(var(--px) * var(--depth) * 1px) calc(var(--py) * var(--depth) * .7px);
-    transition: translate .6s var(--ease);
-  }
 
   /* Wjazd sekcji przy przewijaniu */
   .js [data-reveal] {
@@ -462,18 +460,17 @@ a.tile-ig:hover .tile-arrow, a.tile-yt:hover .tile-arrow, .tile-discord:has(.til
   .player[open] { animation: pop .35s var(--ease); }
   .player[open]::backdrop { animation: fade .35s var(--ease); }
 
-  /* Scroll-driven (Chrome, Edge, Safari 26+; w reszcie przegladarek po prostu ich nie ma) */
+  /* Pasek postepu przewijania (Chrome, Edge, Safari 26+; w reszcie przegladarek po prostu go nie ma) */
   @supports (animation-timeline: scroll()) {
     .progress {
       display: block; position: fixed; inset: 0 0 auto 0; height: 3px; z-index: var(--z-progress);
       background: var(--accent); transform-origin: 0 50%;
       animation: grow linear both; animation-timeline: scroll(root);
     }
-    .hero-visual { animation: drift linear both; animation-timeline: scroll(root); animation-range: 0 100vh; }
   }
 }
 /* Tylko mysz: podswietlenie kafelka pod kursorem i reakcje na hover */
-@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+@media (hover: hover) and (pointer: fine) {
   .tile::before {
     content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0;
     background: radial-gradient(340px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--accent) 16%, transparent), transparent 65%);
@@ -485,17 +482,18 @@ a.tile-ig:hover .tile-arrow, a.tile-yt:hover .tile-arrow, .tile-discord:has(.til
   a.tile:hover .tile-mark, .tile-discord:hover .tile-mark { transform: translate(-8px, -8px) rotate(-4deg) scale(1.05); }
   .vcard-media:hover .play::before { animation: ping 1.2s var(--ease) infinite; }
 }
-/* "Ogranicz ruch" wlaczone w systemie: zostaje tylko lagodne pojawianie sie (przezroczystosc).
-   Bez przesuwania, obracania, paralaksy, paska przewijania i odliczania liczb. */
+/* Efekty kojarzone z zawrotami glowy (paralaksa za kursorem i przy przewijaniu) dzialaja tylko u osob,
+   ktore nie maja w systemie "ogranicz ruch". Kursor: zmienne --px/--py ustawia main.js. */
+@media (prefers-reduced-motion: no-preference) {
+  .shot, .hero-avatar {
+    translate: calc(var(--px) * var(--depth) * 1px) calc(var(--py) * var(--depth) * .7px);
+    transition: translate .6s var(--ease);
+  }
+  @supports (animation-timeline: scroll()) {
+    .hero-visual { animation: drift linear both; animation-timeline: scroll(root); animation-range: 0 100vh; }
+  }
+}
+/* Skok po kotwicach (menu) bez plynnego przewijania u osob z "ogranicz ruch" */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  @keyframes fade-in { from { opacity: 0; } }
-  .site-header, .hero-title, .hero-sub, .hero-cta, .shot, .hero-avatar { animation: fade-in .8s ease both; }
-  .hero-sub { animation-delay: .15s; }
-  .hero-cta { animation-delay: .3s; }
-  .shot { animation-delay: calc(.2s + var(--i, 0) * .1s); }
-  .hero-avatar { animation-delay: .5s; }
-  .js [data-reveal] { opacity: 0; transition: opacity .7s ease; transition-delay: var(--d, 0s); }
-  .js [data-reveal].in { opacity: 1; }
-  .player[open]::backdrop { animation: fade-in .25s ease; }
 }

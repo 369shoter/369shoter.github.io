@@ -207,7 +207,7 @@
       const card = track.querySelector(".vcard");
       return card ? card.getBoundingClientRect().width + 16 : 280;
     };
-    const go = (dir) => track.scrollBy({ left: dir * step() * 2, behavior: reduceMotion ? "auto" : "smooth" });
+    const go = (dir) => track.scrollBy({ left: dir * step() * 2, behavior: "smooth" });
     prev.addEventListener("click", () => go(-1));
     next.addEventListener("click", () => go(1));
 
@@ -293,12 +293,13 @@
     new IntersectionObserver(([e]) => header.classList.toggle("is-stuck", !e.isIntersecting)).observe(sentinel);
   }
 
-  /* Tylko mysz i bez "ogranicz ruch": glebia w hero i podswietlenie kafelkow pod kursorem.
-     Zapisujemy tylko zmienne CSS, a ruch robi CSS (transform), wiec nie ma przeliczania ukladu. */
-  if (!reduceMotion && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+  /* Tylko mysz: glebia w hero i podswietlenie kafelkow pod kursorem.
+     Zapisujemy tylko zmienne CSS, a ruch robi CSS (transform), wiec nie ma przeliczania ukladu.
+     Glebia (paralaksa) jest pomijana u osob z "ogranicz ruch" w systemie, reszta dziala u wszystkich. */
+  if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
     const hero = $(".hero");
     const visual = $(".hero-visual");
-    if (hero && visual) {
+    if (!reduceMotion && hero && visual) {
       let px = 0, py = 0, frame = 0;
       const apply = () => {
         frame = 0;
@@ -328,15 +329,13 @@
   }
 
   const revealables = document.querySelectorAll("[data-reveal]");
-  // Przy "ogranicz ruch" sekcje tez pojawiaja sie przy przewijaniu (samo przejscie przezroczystosci,
-  // patrz CSS), tylko liczby zostaja od razu w koncowej wartosci.
   if ("IntersectionObserver" in window) {
     const io = new IntersectionObserver((entries, obs) => {
       entries.forEach((e) => {
         if (!e.isIntersecting) return;
         e.target.classList.add("in");
         obs.unobserve(e.target);
-        if (e.target === statsEl && !reduceMotion) {
+        if (e.target === statsEl) {
           // liczby wskakuja jedna po drugiej: najpierw zero, potem odliczanie z opoznieniem
           e.target.querySelectorAll(".num").forEach((n, i) => {
             n.textContent = "0";
