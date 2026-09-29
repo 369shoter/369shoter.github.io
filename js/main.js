@@ -260,6 +260,19 @@
     dlg.addEventListener("close", () => frame.removeAttribute("src")); // zatrzymuje odtwarzanie
   }
 
+  /* ---------- Blok na dole: strona streamera (z config.js, bez adresu = ukryty) ---------- */
+  (function setupPartner() {
+    const section = $("#tsxnine");
+    if (!section) return;
+    const p = C.partner || {};
+    if (!p.url) { section.hidden = true; return; }
+    $("#partner-link").setAttribute("href", p.url);
+    if (p.label) $("#partner-label").textContent = p.label;
+    if (p.name) $("#partner-name").textContent = p.name;
+    const note = $("#partner-note");
+    if (typeof p.note === "string") { note.textContent = p.note; note.hidden = !p.note; }
+  })();
+
   /* ---------- Stopka ---------- */
   (function buildFooter() {
     const list = $("#footer-links");

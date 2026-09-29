@@ -69,7 +69,8 @@ prosto na GitHubie (ikona ołówka).
 | E-mail do współpracy | `email` |
 | Ile filmów w rankingu i w "Najnowsze" | `topCount`, `latestCount` |
 | Starsze filmy do rankingu, własne tytuły | `videos` |
-| Linki w stopce | `extraLinks` |
+| Duży blok na dole (strona streamera, dla którego robisz klipy) | `partner` (puste `url` chowa blok) |
+| Dodatkowe małe linki w stopce | `extraLinks` |
 
 ### Dodanie starszego filmu do rankingu
 

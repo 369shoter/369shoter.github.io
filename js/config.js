@@ -34,10 +34,17 @@ window.SITE_CONFIG = {
   // Adres e-mail do współpracy. Zostaw puste "", jeśli nie chcesz go pokazywać.
   email: "",
 
-  // Dodatkowe linki w stopce. Usuń albo dopisz według uznania.
-  extraLinks: [
-    { label: "tsxnine.pl", url: "https://tsxnine.pl" }
-  ],
+  // Duży blok na samym dole strony, pod "Najnowsze filmy": strona streamera, dla którego robisz klipy.
+  // Zostaw url puste "", żeby go schować. Puste "note" chowa tylko opis.
+  partner: {
+    label: "Robię klipy dla",
+    name: "tsxnine.pl",
+    url: "https://tsxnine.pl",
+    note: "Streamer na Kicku. Transmisje i wszystkie linki w jednym miejscu."
+  },
+
+  // Dodatkowe małe linki w stopce, np. { label: "Nazwa", url: "https://..." }.
+  extraLinks: [],
 
   // Liczby pod hero. Strona sama je skróci (3749 -> 3,7K+) i zaokrągla w dół.
   // "source" mówi, skąd brać świeżą wartość: dane z TikToka odświeżają się same raz dziennie

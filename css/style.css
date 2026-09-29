@@ -383,10 +383,38 @@ a.tile-ig:hover .tile-arrow, a.tile-yt:hover .tile-arrow, .tile-discord:has(.til
 .vcard-more:focus-visible { outline-color: var(--text); }
 
 /* ---------- Najnowsze filmy (siatka) ---------- */
-.latest { padding-top: 0; }
+.latest { padding-top: 0; padding-bottom: clamp(56px, 7vw, 96px); }
 .latest .h2 { margin-bottom: clamp(28px, 4vw, 48px); }
 .latest-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 @media (min-width: 820px) { .latest-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }
+
+/* ---------- Strona streamera (tsxnine.pl) ---------- */
+.partner { padding-top: 0; padding-bottom: clamp(64px, 9vw, 120px); }
+.partner-link {
+  position: relative; isolation: isolate; overflow: hidden; display: block;
+  padding: clamp(24px, 4vw, 48px);
+  border-radius: var(--r-card); border: 1px solid var(--line);
+  background: radial-gradient(80% 140% at 100% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%), var(--bg-elev);
+  transition: border-color .3s, color .3s, transform .4s var(--ease);
+}
+/* zielone wypelnienie przy najechaniu to osobna warstwa, bo tla-gradientu nie da sie plynnie przejsc w kolor */
+.partner-link::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; background: var(--accent);
+  opacity: 0; transition: opacity .3s;
+}
+.partner-link:hover { color: var(--on-accent); border-color: transparent; transform: translateY(-4px); }
+.partner-link:hover::before { opacity: 1; }
+.partner-link:active { transform: scale(.99); }
+.partner-link:focus-visible { outline-offset: 4px; }
+.partner-label { display: block; margin-bottom: 8px; font-size: 17px; font-weight: 500; color: var(--muted); transition: color .3s; }
+.partner-name {
+  display: block; font: 900 clamp(48px, 15.5vw, 176px)/.9 var(--font-display);
+  text-transform: uppercase; letter-spacing: -.005em; overflow-wrap: anywhere;
+}
+.partner-note { display: block; max-width: 46ch; margin-top: 18px; font-size: clamp(16px, 1.6vw, 19px); color: var(--muted); transition: color .3s; }
+.partner-link:hover .partner-label, .partner-link:hover .partner-note { color: color-mix(in srgb, var(--on-accent) 78%, transparent); }
+.partner-link .tile-arrow { position: absolute; top: clamp(20px, 3vw, 36px); right: clamp(20px, 3vw, 36px); }
+.partner-link:hover .tile-arrow { opacity: 1; transform: rotate(45deg); background: var(--on-accent); color: var(--accent); }
 
 /* ---------- Odtwarzacz (okno z filmem) ---------- */
 .player {
@@ -439,8 +467,8 @@ a.tile-ig:hover .tile-arrow, a.tile-yt:hover .tile-arrow, .tile-discord:has(.til
   /* Wjazd sekcji przy przewijaniu */
   .js [data-reveal] {
     opacity: 0; translate: 0 28px;
-    transition: opacity .8s var(--ease), translate .8s var(--ease), transform .4s var(--ease), border-color .25s, background-color .25s;
-    transition-delay: var(--d, 0s), var(--d, 0s), 0s, 0s, 0s;
+    transition: opacity .8s var(--ease), translate .8s var(--ease), transform .4s var(--ease), border-color .25s, background-color .25s, color .25s;
+    transition-delay: var(--d, 0s), var(--d, 0s), 0s, 0s, 0s, 0s;
   }
   .js [data-reveal].in { opacity: 1; translate: 0 0; }
   /* Karty filmow wjezdzaja z boku, jak rozdawane */
