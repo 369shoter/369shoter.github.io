@@ -277,13 +277,27 @@
     });
     frame.addEventListener("load", () => stage.classList.add("is-ready"));
 
-    // Odtwarzacz TikToka wysyla komunikaty do strony: przy bledzie pokazujemy przycisk "Obejrzyj na TikToku"
+    // Polecenia dla odtwarzacza TikToka (play, pause, mute, unMute)
+    const command = (type) => {
+      if (frame.contentWindow) frame.contentWindow.postMessage({ type, "x-tiktok-player": true }, PLAYER_ORIGIN);
+    };
+
+    // Odtwarzacz TikToka wysyla komunikaty do strony (start, stan, blad).
+    // Autoodtwarzanie zawsze startuje z wyciszeniem, wiec zaraz po starcie wlaczamy dzwiek: przegladarka
+    // pozwala na to, bo uzytkownik przed chwila kliknal w karte filmu. Gdyby jednak zablokowala dzwiek
+    // (film sie zatrzymuje, zanim ruszy), wyciszamy i wznawiamy, zeby film i tak sie odtwarzal.
+    let started = false;
     window.addEventListener("message", (e) => {
       if (e.origin !== PLAYER_ORIGIN || !dlg.open) return;
       let d = e.data;
       if (typeof d === "string") { try { d = JSON.parse(d); } catch (_) { return; } }
       if (!d || !d["x-tiktok-player"]) return;
       if (d.type === "onPlayerError") fallback.hidden = false;
+      if (d.type === "onPlayerReady") { started = false; command("unMute"); }
+      if (d.type === "onStateChange") {
+        if (d.value === 1) started = true;
+        else if (d.value === 2 && !started) { command("mute"); command("play"); started = true; }
+      }
     });
   }
 
