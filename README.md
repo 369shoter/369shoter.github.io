@@ -139,8 +139,7 @@ Każdy efekt jest osobnym kawałkiem kodu, więc jeśli któryś Ci się nie spo
 | --- | --- |
 | Karuzela filmów w stylu „coverflow” (telefon) | funkcja `coverflow` w `js/main.js` i blok „Telefon: karta przyciąga się do środka” w `css/style.css` |
 | Tło w klimacie CS2 (siatka, celownik, ziarno, dryfująca poświata) | sekcja „Tło w klimacie CS2” w `css/style.css` oraz `assets/grain.png` |
-| Fala i hitmarker po stuknięciu (i wibracja na Androidzie) | funkcja `tapFx` w `js/main.js` i style `.fx*` w `css/style.css` |
-| Obracający się zielony blask wokół bloku z tsxnine.pl | reguły `.partner-link::after` i `@property --ring` w `css/style.css` |
+| Zielone światło biegnące wokół bloku z tsxnine.pl | funkcja `partnerGlow` w `js/main.js` i reguły `.partner-ring`, `.partner-run`, `.partner-glow`, `.partner-run-soft` w `css/style.css` |
 | Rozmyty podgląd okładek przed załadowaniem | reguły `.vcard-media::before` i `.vcard-media img` (opacity) w `css/style.css`; skrypt `scripts/update_tiktok.py` może dalej zapisywać `lqip` w danych, nic to nie psuje |
 
 ## Animacje i ustawienie systemu „ogranicz ruch”

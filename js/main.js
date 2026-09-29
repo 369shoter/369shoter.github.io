@@ -316,17 +316,29 @@
 
   /* ---------- Hero: okladki losowane sposrod 6 najlepszych filmow ----------
      Przy kazdym wejsciu (i odswiezeniu) losujemy 3 z 6 najczesciej ogladanych. Potem sie nie zmieniaja.
-     Jesli filmow jest mniej niz 3, zostaja okladki wpisane na stale w index.html. */
+     Klikniecie w okladke otwiera ten film w odtwarzaczu (albo na TikToku, zaleznie od videoMode); lista do przewijania
+     zaczyna sie od tej szostki. Jesli filmow jest mniej niz 3, zostaja okladki wpisane na stale w index.html. */
   (function heroCovers() {
+    const visual = $(".hero-visual");
     const shots = document.querySelectorAll(".hero-visual .shot");
-    if (shots.length !== 3) return;
+    if (!visual || shots.length !== 3) return;
     const best = allVideos.slice().sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 6);
     if (best.length < 3) return;
-    const pick = best.sort(() => Math.random() - 0.5).slice(0, 3);
+    const pick = best.slice().sort(() => Math.random() - 0.5).slice(0, 3);
     shots.forEach((shot, i) => {
+      const v = pick[i];
       const img = shot.querySelector("img");
-      if (img) img.src = pick[i].cover || "assets/covers/" + pick[i].id + ".webp";
+      if (img) img.src = v.cover || "assets/covers/" + v.id + ".webp";
+      shot.setAttribute("role", "button");
+      shot.setAttribute("tabindex", "0");
+      shot.setAttribute("aria-label", "Odtwórz film: " + (v.title || "Film"));
+      shot.addEventListener("click", () => openPlayer(v, best));
+      shot.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPlayer(v, best); }
+      });
     });
+    visual.classList.add("is-live");
+    visual.removeAttribute("aria-hidden"); // teraz to przyciski, nie sama dekoracja
   })();
 
   /* ---------- Odtwarzacz filmu ----------
@@ -575,6 +587,59 @@
     if (typeof p.note === "string") { note.textContent = p.note; note.hidden = !p.note; }
   })();
 
+  /* ---------- Blok tsxnine.pl: zielone swiatlo biegnace wokol ramki ----------
+     Dwa elementy poruszane po obwodzie zaokraglonego prostokata ze stala predkoscia (jedno okrazenie co 7 s, bez wzgledu na
+     rozmiar bloku): jasny punkt na ramce (maska 2 px w CSS) i miekka poswiata wewnatrz. Stoi, gdy blok jest poza ekranem
+     albo zakladka w tle. Przy najechaniu myszka blask znika (zielone wypelnienie). */
+  (function partnerGlow() {
+    const link = $("#partner-link");
+    if (!link) return;
+    const ring = el("span", { class: "partner-ring", "aria-hidden": "true" }, [el("span", { class: "partner-run" })]);
+    const glow = el("span", { class: "partner-glow", "aria-hidden": "true" }, [el("span", { class: "partner-run-soft" })]);
+    link.prepend(glow, ring);
+    const dot = ring.firstElementChild, soft = glow.firstElementChild;
+    const LAP = 7; // sekund na okrazenie
+    let w = 0, h = 0, r = 19, perimeter = 1, offset = 0, last = 0, raf = 0, visible = true;
+
+    function measure() {
+      w = link.clientWidth; h = link.clientHeight;
+      r = Math.min(19, w / 2, h / 2);
+      perimeter = 2 * (w - 2 * r) + 2 * (h - 2 * r) + 2 * Math.PI * r;
+    }
+    // punkt na obwodzie (0 = lewy gorny koniec prostego odcinka gornego, dalej zgodnie z ruchem wskazowek)
+    function pointAt(s) {
+      const sw = w - 2 * r, sh = h - 2 * r, arc = (Math.PI * r) / 2;
+      let a;
+      if (s < sw) return [r + s, 0];
+      s -= sw; if (s < arc) { a = s / r; return [w - r + r * Math.sin(a), r - r * Math.cos(a)]; }
+      s -= arc; if (s < sh) return [w, r + s];
+      s -= sh; if (s < arc) { a = s / r; return [w - r + r * Math.cos(a), h - r + r * Math.sin(a)]; }
+      s -= arc; if (s < sw) return [w - r - s, h];
+      s -= sw; if (s < arc) { a = s / r; return [r - r * Math.sin(a), h - r + r * Math.cos(a)]; }
+      s -= arc; if (s < sh) return [0, h - r - s];
+      s -= sh; a = s / r; return [r - r * Math.cos(a), r - r * Math.sin(a)];
+    }
+    function render() {
+      const [x, y] = pointAt(((offset % perimeter) + perimeter) % perimeter);
+      dot.style.transform = "translate(" + (x - 90).toFixed(1) + "px," + (y - 90).toFixed(1) + "px)";
+      soft.style.transform = "translate(" + (x - 170).toFixed(1) + "px," + (y - 170).toFixed(1) + "px)";
+    }
+    function frame(now) {
+      raf = 0;
+      const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+      last = now;
+      offset += (perimeter / LAP) * dt;
+      render();
+      if (visible && !document.hidden) raf = requestAnimationFrame(frame);
+    }
+    const start = () => { if (!raf && visible && !document.hidden) { last = 0; raf = requestAnimationFrame(frame); } };
+    measure(); render();
+    if ("IntersectionObserver" in window) new IntersectionObserver(([e]) => { visible = e.isIntersecting; start(); }).observe(link);
+    document.addEventListener("visibilitychange", start);
+    window.addEventListener("resize", () => { measure(); render(); });
+    start();
+  })();
+
   /* ---------- Stopka ---------- */
   (function buildFooter() {
     const list = $("#footer-links");
@@ -683,39 +748,6 @@
     window.addEventListener("resize", queue);
     if (mq.addEventListener) mq.addEventListener("change", apply); else if (mq.addListener) mq.addListener(apply);
     apply();
-  })();
-
-  /* ---------- Efekt stuniecia: zielona fala i hitmarker w miejscu klikniecia ----------
-     Wlasna warstwa nad strona (pointer-events: none), wiec niczego nie zaslania. Na dotyku dodatkowo krotka wibracja
-     (Android). Nie pojawia sie w oknie odtwarzacza. Reaguje na klikniecie, wiec przeciaganie karuzeli go nie wywoluje. */
-  (function tapFx() {
-    const layer = el("div", { class: "fx", "aria-hidden": "true" });
-    document.body.append(layer);
-    const NS = "http://www.w3.org/2000/svg";
-    function hitmarker() {
-      const svg = document.createElementNS(NS, "svg");
-      svg.setAttribute("class", "fx-hit");
-      svg.setAttribute("viewBox", "-20 -20 40 40");
-      const path = document.createElementNS(NS, "path");
-      path.setAttribute("d", "M-13 -13L-5 -5M13 -13L5 -5M-13 13L-5 5M13 13L5 5");
-      path.setAttribute("stroke", "currentColor");
-      path.setAttribute("stroke-width", "3.2");
-      path.setAttribute("stroke-linecap", "round");
-      path.setAttribute("fill", "none");
-      svg.append(path);
-      return svg;
-    }
-    document.addEventListener("click", (e) => {
-      const t = e.target.closest && e.target.closest("a, button, .vcard-media, .tile");
-      if (!t || t.disabled || t.closest("dialog")) return;
-      let x = e.clientX, y = e.clientY;
-      if (!x && !y) { const r = t.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top + r.height / 2; } // klawiatura
-      const nodes = [el("span", { class: "fx-ring" }), hitmarker()];
-      nodes.forEach((n) => { n.style.left = x + "px"; n.style.top = y + "px"; layer.append(n); });
-      while (layer.children.length > 8) layer.firstChild.remove();
-      setTimeout(() => nodes.forEach((n) => n.remove()), 700);
-      if (e.pointerType === "touch" && navigator.vibrate) { try { navigator.vibrate(8); } catch (_) { /* brak zgody */ } }
-    });
   })();
 
   /* ---------- Ruch: naglowek, wjazd sekcji, licznik ---------- */

@@ -217,6 +217,10 @@ ul { padding: 0; list-style: none; }
   background: var(--bg-elev);
 }
 .shot img { width: 100%; height: 100%; object-fit: cover; }
+.is-live .shot { cursor: pointer; }
+.is-live .shot img { transition: transform .5s var(--ease); }
+.shot:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
+@media (hover: hover) { .is-live .shot:hover img { transform: scale(1.05); } }
 .shot-a { left: 0;    top: 16%; rotate: -7deg; z-index: 1; --depth: 34; }
 .shot-b { left: 28.5%; top: 0;   z-index: 2; --depth: -22; }
 .shot-c { right: 0;   top: 15%; rotate: 7deg;  z-index: 1; --depth: 20; }
@@ -424,17 +428,19 @@ a.tile:active { transform: scale(.985); }
 @media (hover: hover) { .partner-link:hover::before { opacity: 1; } }
 .partner-link:active { transform: scale(.99); }
 .partner-link:focus-visible { outline-offset: 4px; }
-/* Zielony blask krazacy po obwodzie (pierscien 2 px z maski). Bez @property (starsze przegladarki) pierscien jest staly. */
-@property --ring { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
-.partner-link::after {
-  content: ""; position: absolute; inset: 0; z-index: 1; padding: 2px; border-radius: inherit; pointer-events: none;
-  background: conic-gradient(from var(--ring, 0deg), transparent 0 60%, rgb(87 224 44 / .18) 74%, var(--accent) 93%, transparent 100%);
+/* Zielone swiatlo biegnace wokol ramki (main.js, partnerGlow): pozycje liczy JS, tu wyglad.
+   Pierscien to maska 2 px z jasnym punktem, obok miekka poswiata wewnatrz bloku. */
+.partner-ring {
+  position: absolute; inset: 0; z-index: 1; padding: 3px; border-radius: inherit; pointer-events: none; transition: opacity .3s;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
-  animation: ring-spin 6s linear infinite; transition: opacity .3s;
 }
-@keyframes ring-spin { to { --ring: 360deg; } }
-@media (hover: hover) { .partner-link:hover::after { opacity: 0; } }
+.partner-run { position: absolute; left: 0; top: 0; width: 180px; height: 180px; border-radius: 50%; will-change: transform;
+  background: radial-gradient(closest-side, #d6ffc4 0%, #b8ff9e 12%, var(--accent) 42%, rgb(87 224 44 / 0) 100%); }
+.partner-glow { position: absolute; inset: 0; z-index: -1; overflow: hidden; border-radius: inherit; pointer-events: none; transition: opacity .3s; }
+.partner-run-soft { position: absolute; left: 0; top: 0; width: 340px; height: 340px; border-radius: 50%; will-change: transform;
+  background: radial-gradient(closest-side, rgb(87 224 44 / .28), rgb(87 224 44 / 0)); }
+@media (hover: hover) { .partner-link:hover .partner-ring, .partner-link:hover .partner-glow { opacity: 0; } }
 .partner-label { display: block; margin-bottom: 8px; font-size: 17px; font-weight: 500; color: var(--muted); transition: color .3s; }
 .partner-name {
   display: block; font: 900 clamp(48px, 15.5vw, 176px)/.9 var(--font-display);
@@ -542,13 +548,6 @@ body::after {
 @media (min-width: 900px) { .hero::after { left: auto; right: -14%; translate: 0 -50%; top: 50%; } }
 .hero::before { animation: glow-drift 16s ease-in-out infinite alternate; }
 @keyframes glow-drift { to { translate: -6vmax 7vmax; } }
-
-/* ---------- Efekt stuniecia: fala i hitmarker (main.js, tapFx) ---------- */
-.fx { position: fixed; inset: 0; z-index: 60; pointer-events: none; overflow: hidden; }
-.fx-ring { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border: 2.5px solid var(--accent); border-radius: 50%; animation: fx-ring .55s var(--ease) forwards; }
-@keyframes fx-ring { from { transform: scale(.35); opacity: 1; } to { transform: scale(4.2); opacity: 0; } }
-.fx-hit { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; color: #fff; animation: fx-hit .4s ease-out forwards; }
-@keyframes fx-hit { 0% { transform: scale(.5); opacity: 0; } 25% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1.3); opacity: 0; } }
 
 /* ---------- Ekran wczytywania ----------
    Pelnoekranowa nakladka z logo, ktora znika, gdy strona sie zaladuje (skrypt w index.html dodaje klase intro-done).
