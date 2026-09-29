@@ -25,7 +25,9 @@
 
   <link rel="preload" href="assets/fonts/bsd-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/style.css">
+  <!-- Numer wersji w adresach plikow (v=dev) workflow podmienia przy publikacji na znacznik czasu,
+       dzieki czemu przegladarki nie trzymaja starych plikow po zmianach. -->
+  <link rel="stylesheet" href="css/style.css?v=dev">
   <script>document.documentElement.classList.add("js")</script>
 </head>
 <body>
@@ -200,8 +202,8 @@
     </div>
   </dialog>
 
-  <script src="js/config.js"></script>
-  <script src="data/tiktok.js"></script>
-  <script src="js/main.js"></script>
+  <script src="js/config.js?v=dev"></script>
+  <script src="data/tiktok.js?v=dev"></script>
+  <script src="js/main.js?v=dev"></script>
 </body>
 </html>
