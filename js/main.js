@@ -634,6 +634,55 @@
     (C.extraLinks || []).forEach((l) => add(l.url, l.label, null));
   })();
 
+  /* ---------- Plynne przewijanie: menu, przyciski ze strzalka i logo (na gore) ----------
+     Wlasna animacja (rAF), wiec dziala takze przy wlaczonym w systemie "ogranicz ruch", gdy natywne przewijanie
+     bywa wylaczone i strona tylko "przeskakuje". Konczy sie, gdy uzytkownik sam zacznie przewijac (kolko, dotyk,
+     klawisze). Laduje pod naglowkiem sekcji, a "#top" (logo) oznacza sam poczatek strony. */
+  (function smoothAnchors() {
+    const root = document.documentElement;
+    let raf = 0;
+    const stop = () => { if (raf) { cancelAnimationFrame(raf); raf = 0; root.style.scrollBehavior = ""; } };
+    ["wheel", "touchstart", "mousedown", "keydown"].forEach((t) => window.addEventListener(t, stop, { passive: true }));
+    const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2); // start i hamowanie
+
+    function scrollToY(y) {
+      stop();
+      const from = window.scrollY;
+      const to = Math.max(0, Math.min(y, root.scrollHeight - window.innerHeight));
+      const dist = to - from;
+      if (Math.abs(dist) < 2) return;
+      const dur = Math.min(1100, Math.max(450, 380 + Math.abs(dist) * 0.22)); // dalej = dluzej, ale bez przesady
+      const t0 = performance.now();
+      root.style.scrollBehavior = "auto"; // wylacza CSS-owe wygladzanie, zeby nie nakladalo sie na klatki animacji
+      const step = (now) => {
+        const t = Math.max(0, Math.min(1, (now - t0) / dur));
+        window.scrollTo(0, from + dist * ease(t));
+        if (t < 1) raf = requestAnimationFrame(step);
+        else { raf = 0; root.style.scrollBehavior = ""; }
+      };
+      raf = requestAnimationFrame(step);
+    }
+
+    document.addEventListener("click", (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a || a.classList.contains("skip") || a.target === "_blank") return;
+      const id = decodeURIComponent(a.getAttribute("href").slice(1));
+      if (!id) return;
+      let y = 0;
+      if (id !== "top") {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const headerH = parseFloat(getComputedStyle(root).getPropertyValue("--header-h")) || 64;
+        // sekcje maja duzy odstep u gory: ladujemy na ich tresci, nie na pustym miejscu
+        y = el.getBoundingClientRect().top + window.scrollY + (parseFloat(getComputedStyle(el).paddingTop) || 0) - headerH - 20;
+      }
+      e.preventDefault();
+      scrollToY(y);
+      try { history.replaceState(null, "", id === "top" ? location.pathname + location.search : "#" + id); } catch (_) { /* np. strona otwarta z pliku */ }
+    });
+  })();
+
   /* ---------- Ruch: naglowek, wjazd sekcji, licznik ---------- */
   const header = $(".site-header");
   const sentinel = $("#sentinel");

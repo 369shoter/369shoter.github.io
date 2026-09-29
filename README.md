@@ -129,6 +129,8 @@ usuń ten znacznik i skrypt oraz klasę `intro-on` w skrypcie w `<head>`.
 
 Strona jest zawsze ciemna, niezależnie od ustawień telefonu.
 
+Menu, przyciski ze strzałką i logo (wraca na samą górę, w nagłówku i w stopce) przewijają stronę płynną animacją. Jest własna (`smoothAnchors` w `js/main.js`), więc działa też przy włączonym w systemie „ogranicz ruch”, kiedy natywne przewijanie bywa wyłączone. Zatrzymuje się, gdy sam zaczniesz przewijać.
+
 ## Animacje i ustawienie systemu „ogranicz ruch”
 
 Animacje (wejście strony, wjazd sekcji, karty filmów, liczby, kafelki, pasek postępu)

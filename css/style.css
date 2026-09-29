@@ -155,8 +155,10 @@ ul { padding: 0; list-style: none; }
 .nav a {
   padding: 10px 16px; border-radius: var(--r-pill);
   font-size: 15px; font-weight: 500; color: var(--muted);
-  transition: color .2s, background-color .2s;
+  transition: color .2s, background-color .2s, transform .3s var(--ease);
 }
+.nav a:active, .brand:active, .footer-brand:active { transform: scale(.95); }
+.brand, .footer-brand { transition: transform .3s var(--ease); }
 @media (hover: hover) { .nav a:hover { color: var(--text); background: var(--bg-elev-2); } }
 .header-socials { margin-left: auto; display: flex; gap: 2px; }
 @media (min-width: 720px) {
