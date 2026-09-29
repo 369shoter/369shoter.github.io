@@ -103,6 +103,32 @@
   }
   const icon = (name) => svgUse(name, "icon");
 
+  /* Kopiowanie do schowka: nowe API, a w starszych przegladarkach (np. w aplikacjach) zapasowy sposob.
+     Zwraca true, gdy sie udalo. */
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (_) { /* probujemy zapasowo */ }
+    const ta = el("textarea", { readonly: "", style: "position:fixed;top:0;left:0;opacity:0" });
+    ta.value = text;
+    document.body.append(ta);
+    ta.select();
+    ta.setSelectionRange(0, text.length); // iOS
+    let done = false;
+    try { done = document.execCommand("copy"); } catch (_) { /* brak zgody */ }
+    ta.remove();
+    return done;
+  }
+
+  /* Krotki komunikat nad dolnym paskiem (np. "Link skopiowany") */
+  const toast = $("#toast");
+  let toastTimer = 0;
+  function showToast(msg) {
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.classList.add("is-on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("is-on"), 2200);
+  }
+
   /* ---------- Linki (TikTok, Instagram, Discord) ---------- */
   const discord = C.discord || {};
   const linkTargets = {
@@ -159,19 +185,9 @@
 
     let timer;
     copyBtn.addEventListener("click", async () => {
-      const text = discord.username || "";
-      try {
-        await navigator.clipboard.writeText(text);
-      } catch (e) {
-        const ta = el("textarea", { readonly: "", style: "position:fixed;opacity:0" });
-        ta.value = text;
-        document.body.append(ta);
-        ta.select();
-        try { document.execCommand("copy"); } catch (_) {}
-        ta.remove();
-      }
-      label.textContent = "Skopiowano";
-      copyBtn.classList.add("is-done");
+      const done = await copyText(discord.username || "");
+      label.textContent = done ? "Skopiowano" : "Nie udało się";
+      copyBtn.classList.toggle("is-done", done);
       clearTimeout(timer);
       timer = setTimeout(() => {
         label.textContent = "Skopiuj nick";
@@ -406,6 +422,50 @@
     (C.extraLinks || []).forEach((l) => add(l.url, l.label, null));
   })();
 
+  /* ---------- Dolny pasek na telefonie: Obserwuj + Udostepnij ----------
+     Pokazuje sie dopiero, gdy przycisk w hero zjedzie poza ekran (wczesniej bylby dubletem), chowa sie przy
+     przewijaniu w dol, wraca przy przewijaniu w gore albo po chwili bezruchu. Na szerokich ekranach CSS go ukrywa. */
+  (function setupDock() {
+    const dock = $("#dock");
+    const shareBtn = $("#dock-share");
+    const heroCta = $(".hero-cta");
+    if (!dock || !shareBtn) return;
+
+    const canonical = $('link[rel="canonical"]');
+    const shareUrl = (canonical && canonical.href) || location.href.split("#")[0];
+    shareBtn.addEventListener("click", async () => {
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: "369_shoter | Klipy z CS2", text: "Klipy z CS2 od 369_shoter", url: shareUrl });
+          return;
+        } catch (e) {
+          if (e && e.name === "AbortError") return; // uzytkownik zamknal okno udostepniania
+        }
+      }
+      showToast((await copyText(shareUrl)) ? "Link skopiowany" : "Nie udało się skopiować linku");
+    });
+
+    let pastHero = !("IntersectionObserver" in window) || !heroCta;
+    let hiddenByScroll = false;
+    const render = () => dock.classList.toggle("is-on", pastHero && !hiddenByScroll);
+    if (!pastHero) {
+      new IntersectionObserver(([e]) => { pastHero = !e.isIntersecting && e.boundingClientRect.top < 0; render(); }).observe(heroCta);
+    }
+    let lastY = window.scrollY, queued = false, idle = 0;
+    window.addEventListener("scroll", () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        const delta = window.scrollY - lastY;
+        if (Math.abs(delta) > 6) { hiddenByScroll = delta > 0; lastY = window.scrollY; render(); }
+        clearTimeout(idle);
+        idle = setTimeout(() => { hiddenByScroll = false; render(); }, 1100);
+      });
+    }, { passive: true });
+    render();
+  })();
+
   /* ---------- Ruch: naglowek, wjazd sekcji, licznik ---------- */
   const header = $(".site-header");
   const sentinel = $("#sentinel");
@@ -489,6 +549,8 @@
     mark(".tile-ig", "instagram-kafelek", "Instagram (kafelek)");
     mark(".tile-yt", "youtube-kafelek", "YouTube (kafelek)");
     mark("#discord-copy", "discord-kopiuj-nick", "Discord (skopiowanie nicku)");
+    mark(".dock-main", "tiktok-pasek", "TikTok (dolny pasek)");
+    mark("#dock-share", "udostepnij-pasek", "Udostępnij (dolny pasek)");
     mark("#discord-hit", "discord-zaproszenie", "Discord (zaproszenie na serwer)");
     mark("#partner-link", "partner", "Strona streamera (blok na dole)");
     mark(".vcard-more", "tiktok-wszystkie-filmy", "TikTok (Wszystkie filmy)");

@@ -53,6 +53,7 @@
 
   --z-header: 20;
   --z-progress: 25;
+  --z-dock: 22;
   --z-skip: 30;
 
   --font-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
@@ -472,6 +473,41 @@ a.tile:active { transform: scale(.985); }
 .footer-links a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 0; color: var(--muted); font-size: 15px; transition: color .2s; }
 @media (hover: hover) { .footer-links a:hover { color: var(--accent-ink); } }
 .footer-note { width: 100%; color: var(--muted); font-size: 14px; }
+
+/* ---------- Dolny pasek (tylko telefon): Obserwuj + Udostepnij ---------- */
+.dock, .toast { display: none; }
+@media (max-width: 819px) {
+  .dock {
+    display: flex; align-items: center; gap: 8px;
+    position: fixed; z-index: var(--z-dock);
+    left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right));
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    padding: 8px; border-radius: var(--r-pill);
+    border: 1px solid var(--line-strong);
+    background: var(--bg-elev); /* zapas dla przegladarek bez color-mix */
+    background: color-mix(in srgb, var(--bg-elev) 88%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
+    box-shadow: var(--shadow);
+    /* schowany pod dolna krawedzia; visibility, zeby ukryty pasek nie brał udzialu w nawigacji */
+    transform: translateY(calc(100% + 32px)); visibility: hidden;
+    transition: transform .4s var(--ease), visibility 0s .4s;
+  }
+  .dock.is-on { transform: none; visibility: visible; transition: transform .4s var(--ease); }
+  .dock-main { flex: 1; min-width: 0; height: 52px; padding: 0 16px; }
+  .dock-share { flex: none; width: 52px; height: 52px; border: 1px solid var(--line-strong); font-size: 24px; }
+  .toast {
+    display: block; position: fixed; z-index: var(--z-dock); left: 50%;
+    bottom: calc(12px + 52px + 16px + 12px + env(safe-area-inset-bottom));
+    max-width: calc(100vw - 32px); padding: 12px 20px; border-radius: var(--r-pill);
+    background: var(--text); color: var(--bg); font-size: 15px; font-weight: 600; text-align: center;
+    box-shadow: var(--shadow);
+    opacity: 0; visibility: hidden; transform: translate(-50%, 12px);
+    transition: opacity .25s, transform .35s var(--ease), visibility 0s .25s;
+  }
+  .toast.is-on { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity .25s, transform .35s var(--ease); }
+  /* miejsce na dole strony, zeby pasek nie zaslanial stopki */
+  .footer { padding-bottom: calc(48px + 88px + env(safe-area-inset-bottom)); }
+}
 
 /* ---------- Ruch ----------
    Animacje dzialaja u wszystkich, takze przy wlaczonym w systemie "ogranicz ruch" (czesto wlaczanym

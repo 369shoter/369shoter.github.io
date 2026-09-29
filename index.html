@@ -73,6 +73,7 @@
   <symbol id="i-caret-right" viewBox="0 0 256 256"><path d="M184.49,136.49l-80,80a12,12,0,0,1-17-17L159,128,87.51,56.49a12,12,0,1,1,17-17l80,80A12,12,0,0,1,184.49,136.49Z"/></symbol>
   <symbol id="i-envelope-simple" viewBox="0 0 256 256"><path d="M224,44H32A12,12,0,0,0,20,56V192a20,20,0,0,0,20,20H216a20,20,0,0,0,20-20V56A12,12,0,0,0,224,44ZM193.15,68,128,127.72,62.85,68ZM44,188V83.28l75.89,69.57a12,12,0,0,0,16.22,0L212,83.28V188Z"/></symbol>
   <symbol id="i-x" viewBox="0 0 256 256"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/></symbol>
+  <symbol id="i-share" viewBox="0 0 256 256"><path d="M128 152V36M88 76l40-40 40 40M96 112H64a8 8 0 0 0-8 8v88a8 8 0 0 0 8 8h128a8 8 0 0 0 8-8v-88a8 8 0 0 0-8-8h-32" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-play" viewBox="0 0 256 256"><path d="M240,128a15.74,15.74,0,0,1-7.6,13.51L88.32,229.65a16,16,0,0,1-16.2.3A15.86,15.86,0,0,1,64,216.13V39.87a15.86,15.86,0,0,1,8.12-13.82,16,16,0,0,1,16.2.3L232.4,114.49A15.74,15.74,0,0,1,240,128Z"/></symbol>
 </svg>
 
@@ -232,6 +233,13 @@
       <p class="footer-note">&copy; <span id="year">2026</span> 369_shoter. <span id="updated"></span> <span id="privacy"></span></p>
     </div>
   </footer>
+
+  <!-- Dolny pasek na telefonie: pokazuje sie po przewinieciu poza przycisk w hero (patrz main.js, setupDock) -->
+  <div class="dock" id="dock" role="group" aria-label="Szybkie akcje">
+    <a class="btn btn-primary dock-main" data-link="tiktok" href="#" target="_blank" rel="noopener"><svg class="icon"><use href="#i-tiktok"/></svg>Obserwuj na TikToku</a>
+    <button class="icon-btn dock-share" id="dock-share" type="button" aria-label="Udostępnij stronę"><svg class="icon"><use href="#i-share"/></svg></button>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <dialog class="player" id="player" aria-label="Odtwarzacz filmu">
     <div class="player-stage" id="player-stage">
