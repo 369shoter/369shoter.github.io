@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panel | 369_shoter</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <!-- Ta strona nie ma zadnych inline'owych skryptow, obcych bibliotek ani zewnetrznych zasobow.
+       Laczy sie tylko sama ze soba i z API GitHuba. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api.github.com; base-uri 'none'; form-action 'none'">
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../css/style.css?v=dev">
+  <link rel="stylesheet" href="admin.css?v=dev">
+  <script src="../js/config.js?v=dev" defer></script>
+  <script src="../data/tiktok.js?v=dev" defer></script>
+  <script src="admin.js?v=dev" defer></script>
+</head>
+<body>
+  <main class="adm">
+    <header class="adm-head">
+      <h1 class="adm-title">Panel</h1>
+      <div class="adm-head-actions">
+        <span class="adm-status" id="status" role="status"></span>
+        <button class="btn btn-ghost btn-sm" id="logout" type="button" hidden>Wyloguj</button>
+      </div>
+    </header>
+
+    <!-- 1. Logowanie: tokenem GitHub. Zadnych hasel na tej stronie. -->
+    <section class="adm-card" id="login">
+      <h2 class="adm-h">Logowanie</h2>
+      <p class="adm-p">Panel nie ma własnego hasła. Zapisuje zmiany prosto do repozytorium GitHub, więc wpuszcza tylko osobę z Twoim tokenem GitHub. Nikt inny niczego tu nie zmieni, nawet gdy zna adres tej strony.</p>
+      <ol class="adm-steps">
+        <li>Wejdź na <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">github.com/settings/personal-access-tokens/new</a>.</li>
+        <li>Wybierz <b>Only select repositories</b> i wskaż tylko <b>tymonekk.github.io</b>.</li>
+        <li>W <b>Repository permissions</b> ustaw <b>Contents</b> na <b>Read and write</b> (reszta zostaje bez dostępu).</li>
+        <li>Ważność ustaw na krótką (np. 30 dni), wygeneruj token i wklej go poniżej.</li>
+      </ol>
+      <form class="adm-form" id="login-form" autocomplete="off">
+        <label class="adm-label" for="token">Token GitHub</label>
+        <input class="adm-input" id="token" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" required>
+        <label class="adm-check"><input type="checkbox" id="remember"> <span>Zapamiętaj do zamknięcia tej karty (mniej bezpieczne)</span></label>
+        <button class="btn btn-primary" type="submit" id="login-btn">Zaloguj</button>
+      </form>
+      <p class="adm-error" id="login-error" role="alert" hidden></p>
+    </section>
+
+    <!-- 2. Edytor (pokazywany dopiero po zalogowaniu) -->
+    <form class="adm-editor" id="editor" hidden autocomplete="off" novalidate>
+      <section class="adm-card">
+        <h2 class="adm-h">Statystyki odwiedzin</h2>
+        <p class="adm-p">Kod z <a href="https://www.goatcounter.com/signup" target="_blank" rel="noopener noreferrer">goatcounter.com</a> (darmowe, bez ciasteczek). Puste = wyłączone.</p>
+        <label class="adm-label" for="f-goatcounter">Nazwa konta GoatCounter</label>
+        <input class="adm-input" id="f-goatcounter" type="text" maxlength="40" pattern="[a-z0-9\-]*" placeholder="np. 369shoter">
+      </section>
+
+      <section class="adm-card">
+        <h2 class="adm-h">Discord i kontakt</h2>
+        <label class="adm-label" for="f-discord-user">Twój nick na Discordzie</label>
+        <input class="adm-input" id="f-discord-user" type="text" maxlength="40">
+        <label class="adm-label" for="f-discord-invite">Link zaproszenia na serwer (https)</label>
+        <input class="adm-input" id="f-discord-invite" type="url" maxlength="200" placeholder="https://discord.gg/...">
+        <label class="adm-label" for="f-email">E-mail do współpracy</label>
+        <input class="adm-input" id="f-email" type="email" maxlength="120">
+      </section>
+
+      <section class="adm-card">
+        <h2 class="adm-h">Blok na dole strony</h2>
+        <label class="adm-check"><input type="checkbox" id="f-partner-on"> <span>Pokazuj blok</span></label>
+        <label class="adm-label" for="f-partner-label">Mały napis nad nazwą</label>
+        <input class="adm-input" id="f-partner-label" type="text" maxlength="200">
+        <label class="adm-label" for="f-partner-name">Duża nazwa</label>
+        <input class="adm-input" id="f-partner-name" type="text" maxlength="200">
+        <label class="adm-label" for="f-partner-url">Adres (https)</label>
+        <input class="adm-input" id="f-partner-url" type="url" maxlength="200">
+        <label class="adm-label" for="f-partner-note">Opis pod nazwą</label>
+        <input class="adm-input" id="f-partner-note" type="text" maxlength="200">
+      </section>
+
+      <section class="adm-card">
+        <h2 class="adm-h">Filmy</h2>
+        <div class="adm-grid">
+          <div>
+            <label class="adm-label" for="f-mode">Po kliknięciu w film</label>
+            <select class="adm-input" id="f-mode">
+              <option value="player">Okno odtwarzacza na stronie</option>
+              <option value="tiktok">Od razu TikTok</option>
+            </select>
+          </div>
+          <div>
+            <label class="adm-label" for="f-top">Ile w „Najczęściej oglądane”</label>
+            <input class="adm-input" id="f-top" type="number" min="1" max="12" step="1">
+          </div>
+          <div>
+            <label class="adm-label" for="f-latest">Ile w „Najnowsze”</label>
+            <input class="adm-input" id="f-latest" type="number" min="1" max="12" step="1">
+          </div>
+        </div>
+
+        <h3 class="adm-h3">Dodaj starszy film</h3>
+        <p class="adm-p">Wklej link z TikToka. Tytuł, okładkę i liczbę wyświetleń strona pobierze sama przy publikacji.</p>
+        <div class="adm-row">
+          <input class="adm-input" id="new-video-url" type="text" maxlength="300" placeholder="https://www.tiktok.com/@369_shoter/video/7671803781754965281" aria-label="Link do filmu">
+          <input class="adm-input" id="new-video-title" type="text" maxlength="120" placeholder="Własny tytuł (opcjonalnie)" aria-label="Własny tytuł">
+          <button class="btn btn-ghost btn-sm" type="button" id="add-video">Dodaj</button>
+        </div>
+        <p class="adm-error" id="add-error" role="alert" hidden></p>
+        <ul class="adm-list" id="extra-list"></ul>
+
+        <h3 class="adm-h3">Ukryj filmy</h3>
+        <p class="adm-p">Zaznaczone filmy znikną ze strony (można je później przywrócić).</p>
+        <ul class="adm-list" id="hide-list"></ul>
+      </section>
+
+      <div class="adm-save">
+        <button class="btn btn-primary" type="submit" id="save-btn">Zapisz i opublikuj</button>
+        <p class="adm-p" id="save-info"></p>
+      </div>
+      <p class="adm-error" id="save-error" role="alert" hidden></p>
+    </form>
+  </main>
+</body>
+</html>

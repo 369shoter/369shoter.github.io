@@ -47,6 +47,63 @@ Uwaga: lista ostatnich filmów z TikToka ma ok. 12 pozycji. Starszy hit, który 
 dopisz ręcznie w `videos` w `js/config.js` (patrz niżej), a strona zacznie go
 uwzględniać w rankingu.
 
+## Statystyki odwiedzin (GoatCounter)
+
+Strona potrafi liczyć odwiedziny i kliknięcia (TikTok, Instagram, YouTube, Discord, poszczególne
+filmy, blok z tsxnine.pl) przez GoatCounter: darmowe, anonimowe, bez ciasteczek, więc nie potrzeba
+banera zgód. Domyślnie jest wyłączone.
+
+1. Załóż konto na https://www.goatcounter.com/signup i wybierz nazwę, np. `369shoter`.
+2. Wpisz ją w panelu admina (pole „Nazwa konta GoatCounter”) albo w `analytics.goatcounter` w `js/config.js`.
+3. Wyniki oglądasz na `https://TWOJA-NAZWA.goatcounter.com`. Kliknięcia są w zakładce
+   z „Events”/ścieżkami zaczynającymi się od `klik/` i `film/`.
+
+## Widoczność w Google
+
+W repozytorium są: `robots.txt`, `sitemap.xml` (data odświeżana przy każdej publikacji), adres
+kanoniczny, dane strukturalne (`ProfilePage` z linkami do TikToka, Instagrama i YouTube),
+`site.webmanifest` z ikonami oraz własna strona `404.html`.
+
+Jednorazowo trzeba potwierdzić własność strony w Google Search Console:
+
+1. Wejdź na https://search.google.com/search-console i dodaj zasób typu **Prefiks adresu URL**:
+   `https://tymonekk.github.io/`.
+2. Wybierz weryfikację **plikiem HTML**, pobierz plik `googleXXXXXXXX.html` i wrzuć go do głównego
+   folderu repozytorium (workflow sam go opublikuje), potem kliknij „Zweryfikuj”.
+3. W zakładce „Mapy witryn” dodaj `sitemap.xml`.
+
+## Panel admina (`/admin/`)
+
+Adres: `https://tymonekk.github.io/admin/`. Pozwala zmienić bez grzebania w kodzie: nazwę GoatCounter,
+nick i zaproszenie na Discorda, e-mail, blok z tsxnine.pl, tryb otwierania filmów, liczbę filmów,
+dodać starsze filmy (samym linkiem) i ukryć wybrane filmy. Zapis publikuje stronę w 1-2 minuty.
+
+**Jak jest zabezpieczony.** Strona statyczna nie może mieć bezpiecznego własnego logowania (hasło
+sprawdzane w przeglądarce widziałby każdy). Dlatego panel **nie ma własnego hasła ani serwera**:
+loguje się tokenem GitHub i zapisuje zmiany przez oficjalne API GitHuba, które samo sprawdza uprawnienia.
+Bez Twojego tokenu nic nie zmienisz, nawet znając adres.
+
+- Token żyje tylko w pamięci karty, wychodzi wyłącznie do `api.github.com` i po 10 minutach
+  bezczynności jest kasowany. Opcja „Zapamiętaj” trzyma go do zamknięcia karty (domyślnie wyłączona).
+- Ścisła polityka CSP: tylko własne skrypty, żadnych obcych bibliotek, żadnego `innerHTML`.
+- Panel nie da się wyświetlić w ramce (ochrona przed podszywaniem się) i ma `noindex`.
+- Strona publiczna nie ufa zapisanym ustawieniom: przyjmuje tylko znane pola, ogranicza długości
+  i akceptuje wyłącznie adresy `https` (wpisy typu `javascript:` są ignorowane).
+
+**Jak się zalogować (jednorazowo).** Utwórz token na
+https://github.com/settings/personal-access-tokens/new : *Only select repositories* -> tylko
+`tymonekk.github.io`, uprawnienie *Contents: Read and write* (nic więcej), ważność krótka
+(np. 30 dni). Włącz też dwuskładnikowe logowanie na koncie GitHub. Zgubiony token unieważnisz na
+https://github.com/settings/personal-access-tokens.
+
+Ustawienia z panelu trafiają do `data/admin.js`, a to, co panel zmienia, ma pierwszeństwo przed
+`js/config.js`. Pole nietknięte w panelu nadal pochodzi z `config.js`.
+
+**Uczciwe ograniczenie:** token ma prawo zapisu do całego repozytorium, więc jego kradzież pozwalałaby
+zmienić kod strony (zmiany widać w historii i cofnie się je jednym kliknięciem). Dlatego krótka ważność,
+brak zapisywania w przeglądarce i 2FA. Mocniejsza wersja to osobne repozytorium wyłącznie na dane
+panelu (wtedy token nie ma dostępu do kodu strony), ale to więcej pracy i zależności.
+
 ## Animacje i ustawienie systemu „ogranicz ruch”
 
 Animacje (wejście strony, wjazd sekcji, karty filmów, liczby, kafelki, pasek postępu)
@@ -88,7 +145,7 @@ prosto na GitHubie (ikona ołówka).
   Workflow sam temu zapobiega, ale gdyby mimo to stanęło, kliknij **Run workflow**
   albo włącz je ponownie w zakładce Actions.
 
-## Struktura
+## Struktura (skrót)
 
 ```
 index.html                       treść strony
@@ -96,8 +153,11 @@ css/style.css                    wygląd (ciemny motyw, jasny dla systemów w tr
 js/config.js                     Twoje dane (linki, liczba filmów, starsze filmy)
 js/main.js                       działanie (odtwarzacz, karuzela, kopiowanie nicku)
 data/tiktok.js                   dane z TikToka (generowane automatycznie)
-scripts/update_tiktok.py         pobieranie danych z TikToka
+data/admin.js                    ustawienia zapisane przez panel admina
+admin/                           panel admina (index.html, admin.js, admin.css)
+scripts/update_tiktok.py         pobieranie danych z TikToka (także dla filmów dodanych w panelu)
 .github/workflows/pages.yml      publikacja i codzienne odświeżanie
+robots.txt, sitemap.xml, site.webmanifest, 404.html   widoczność w Google, ikona, strona błędu
 assets/                          awatar, okładki, czcionki, obraz podglądu linku
 ```
 

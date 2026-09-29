@@ -1,0 +1,42 @@
+/* Panel admina: korzysta z tokenow kolorow z ../css/style.css */
+
+/* Do czasu sprawdzenia, ze panel nie jest w ramce (patrz admin.js), nic nie pokazujemy */
+html:not(.unframed) body { display: none; }
+
+.adm { max-width: 760px; margin: 0 auto; padding: 32px var(--gutter) 96px; display: grid; gap: 20px; }
+.adm-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.adm-title { font: 900 clamp(44px, 9vw, 72px)/.9 var(--font-display); text-transform: uppercase; }
+.adm-head-actions { display: flex; align-items: center; gap: 12px; }
+.adm-status { color: var(--muted); font-size: 15px; }
+
+.adm-card { padding: clamp(20px, 3vw, 28px); border: 1px solid var(--line); border-radius: var(--r-card); background: var(--bg-elev); display: grid; gap: 12px; }
+.adm-h { font: 800 30px/1 var(--font-display); text-transform: uppercase; }
+.adm-h3 { margin-top: 12px; font: 700 20px/1.2 var(--font-body); }
+.adm-p { color: var(--muted); font-size: 16px; }
+.adm-p a, .adm-steps a { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px; }
+.adm-steps { margin: 0; padding-left: 22px; color: var(--muted); font-size: 16px; display: grid; gap: 6px; }
+.adm-steps b { color: var(--text); font-weight: 600; }
+
+.adm-form, .adm-editor { display: grid; gap: 12px; }
+.adm-label { font-size: 15px; font-weight: 600; margin-top: 6px; }
+.adm-input {
+  width: 100%; min-height: 48px; padding: 0 16px; border-radius: 14px;
+  border: 1px solid var(--line-strong); background: var(--bg); color: var(--text);
+  font: 500 16px/1.2 var(--font-body);
+}
+.adm-input:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.adm-check { display: inline-flex; align-items: center; gap: 10px; font-size: 16px; cursor: pointer; }
+.adm-check input { width: 20px; height: 20px; accent-color: var(--accent); }
+.adm-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.adm-row { display: grid; gap: 10px; grid-template-columns: 1.6fr 1fr auto; align-items: center; }
+@media (max-width: 640px) { .adm-row { grid-template-columns: 1fr; } }
+
+.adm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.adm-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
+.adm-item-text { min-width: 0; display: grid; gap: 2px; }
+.adm-item-text span { font-weight: 600; overflow-wrap: anywhere; }
+.adm-item-text small { color: var(--muted); }
+.adm-empty { color: var(--muted); font-size: 15px; }
+
+.adm-error { padding: 12px 14px; border-radius: 14px; border: 1px solid #ff6a5f; color: #ff9d95; background: rgb(255 106 95 / .08); font-size: 15px; }
+.adm-save { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
