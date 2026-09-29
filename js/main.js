@@ -118,17 +118,6 @@
     return done;
   }
 
-  /* Krotki komunikat nad dolnym paskiem (np. "Link skopiowany") */
-  const toast = $("#toast");
-  let toastTimer = 0;
-  function showToast(msg) {
-    if (!toast) return;
-    toast.textContent = msg;
-    toast.classList.add("is-on");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove("is-on"), 2200);
-  }
-
   /* ---------- Linki (TikTok, Instagram, Discord) ---------- */
   const discord = C.discord || {};
   const linkTargets = {
@@ -254,7 +243,7 @@
     const start = performance.now();
     const dur = 1300;
     (function tick(now) {
-      const t = Math.min(1, (now - start) / dur);
+      const t = Math.max(0, Math.min(1, (now - start) / dur)); // klatka animacji bywa starsza niz start: bez ujemnych liczb
       const eased = 1 - Math.pow(1 - t, 4);
       node.textContent = short(Math.floor(target * eased));
       if (t < 1) requestAnimationFrame(tick);
@@ -591,50 +580,6 @@
     (C.extraLinks || []).forEach((l) => add(l.url, l.label, null));
   })();
 
-  /* ---------- Dolny pasek na telefonie: Obserwuj + Udostepnij ----------
-     Pokazuje sie dopiero, gdy przycisk w hero zjedzie poza ekran (wczesniej bylby dubletem), chowa sie przy
-     przewijaniu w dol, wraca przy przewijaniu w gore albo po chwili bezruchu. Na szerokich ekranach CSS go ukrywa. */
-  (function setupDock() {
-    const dock = $("#dock");
-    const shareBtn = $("#dock-share");
-    const heroCta = $(".hero-cta");
-    if (!dock || !shareBtn) return;
-
-    const canonical = $('link[rel="canonical"]');
-    const shareUrl = (canonical && canonical.href) || location.href.split("#")[0];
-    shareBtn.addEventListener("click", async () => {
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: "369_shoter | Klipy z CS2", text: "Klipy z CS2 od 369_shoter", url: shareUrl });
-          return;
-        } catch (e) {
-          if (e && e.name === "AbortError") return; // uzytkownik zamknal okno udostepniania
-        }
-      }
-      showToast((await copyText(shareUrl)) ? "Link skopiowany" : "Nie udało się skopiować linku");
-    });
-
-    let pastHero = !("IntersectionObserver" in window) || !heroCta;
-    let hiddenByScroll = false;
-    const render = () => dock.classList.toggle("is-on", pastHero && !hiddenByScroll);
-    if (!pastHero) {
-      new IntersectionObserver(([e]) => { pastHero = !e.isIntersecting && e.boundingClientRect.top < 0; render(); }).observe(heroCta);
-    }
-    let lastY = window.scrollY, queued = false, idle = 0;
-    window.addEventListener("scroll", () => {
-      if (queued) return;
-      queued = true;
-      requestAnimationFrame(() => {
-        queued = false;
-        const delta = window.scrollY - lastY;
-        if (Math.abs(delta) > 6) { hiddenByScroll = delta > 0; lastY = window.scrollY; render(); }
-        clearTimeout(idle);
-        idle = setTimeout(() => { hiddenByScroll = false; render(); }, 1100);
-      });
-    }, { passive: true });
-    render();
-  })();
-
   /* ---------- Ruch: naglowek, wjazd sekcji, licznik ---------- */
   const header = $(".site-header");
   const sentinel = $("#sentinel");
@@ -718,8 +663,6 @@
     mark(".tile-ig", "instagram-kafelek", "Instagram (kafelek)");
     mark(".tile-yt", "youtube-kafelek", "YouTube (kafelek)");
     mark("#discord-copy", "discord-kopiuj-nick", "Discord (skopiowanie nicku)");
-    mark(".dock-main", "tiktok-pasek", "TikTok (dolny pasek)");
-    mark("#dock-share", "udostepnij-pasek", "Udostępnij (dolny pasek)");
     mark("#discord-hit", "discord-zaproszenie", "Discord (zaproszenie na serwer)");
     mark("#partner-link", "partner", "Strona streamera (blok na dole)");
     mark(".vcard-more", "tiktok-wszystkie-filmy", "TikTok (Wszystkie filmy)");

@@ -53,28 +53,11 @@
 
   --z-header: 20;
   --z-progress: 25;
-  --z-dock: 22;
   --z-skip: 30;
 
   --font-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
   --font-body: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --ease: cubic-bezier(.16, 1, .3, 1);
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color-scheme: light;
-    --bg: #f3f5f2;
-    --bg-elev: #ffffff;
-    --bg-elev-2: #e8ece7;
-    --line: rgb(14 19 16 / .1);
-    --line-strong: rgb(14 19 16 / .22);
-    --text: #0e1310;
-    --muted: #4e5850;
-    --accent-ink: #187508;
-    --shadow: 0 24px 50px rgb(20 44 22 / .18);
-    --tint: rgb(87 224 44 / .22);
-  }
 }
 
 /* ---------- Baza ---------- */
@@ -507,40 +490,29 @@ a.tile:active { transform: scale(.985); }
 @media (hover: hover) { .footer-links a:hover { color: var(--accent-ink); } }
 .footer-note { width: 100%; color: var(--muted); font-size: 14px; }
 
-/* ---------- Dolny pasek (tylko telefon): Obserwuj + Udostepnij ---------- */
-.dock, .toast { display: none; }
-@media (max-width: 819px) {
-  .dock {
-    display: flex; align-items: center; gap: 8px;
-    position: fixed; z-index: var(--z-dock);
-    left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right));
-    bottom: calc(12px + env(safe-area-inset-bottom));
-    padding: 8px; border-radius: var(--r-pill);
-    border: 1px solid var(--line-strong);
-    background: var(--bg-elev); /* zapas dla przegladarek bez color-mix */
-    background: color-mix(in srgb, var(--bg-elev) 88%, transparent);
-    -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
-    box-shadow: var(--shadow);
-    /* schowany pod dolna krawedzia; visibility, zeby ukryty pasek nie brał udzialu w nawigacji */
-    transform: translateY(calc(100% + 32px)); visibility: hidden;
-    transition: transform .4s var(--ease), visibility 0s .4s;
-  }
-  .dock.is-on { transform: none; visibility: visible; transition: transform .4s var(--ease); }
-  .dock-main { flex: 1; min-width: 0; height: 52px; padding: 0 16px; }
-  .dock-share { flex: none; width: 52px; height: 52px; border: 1px solid var(--line-strong); font-size: 24px; }
-  .toast {
-    display: block; position: fixed; z-index: var(--z-dock); left: 50%;
-    bottom: calc(12px + 52px + 16px + 12px + env(safe-area-inset-bottom));
-    max-width: calc(100vw - 32px); padding: 12px 20px; border-radius: var(--r-pill);
-    background: var(--text); color: var(--bg); font-size: 15px; font-weight: 600; text-align: center;
-    box-shadow: var(--shadow);
-    opacity: 0; visibility: hidden; transform: translate(-50%, 12px);
-    transition: opacity .25s, transform .35s var(--ease), visibility 0s .25s;
-  }
-  .toast.is-on { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity .25s, transform .35s var(--ease); }
-  /* miejsce na dole strony, zeby pasek nie zaslanial stopki */
-  .footer { padding-bottom: calc(48px + 88px + env(safe-area-inset-bottom)); }
+/* ---------- Ekran wczytywania ----------
+   Pelnoekranowa nakladka z logo, ktora znika, gdy strona sie zaladuje (skrypt w index.html dodaje klase intro-done).
+   Bez JS nakladka sama znika po 4,5 s. Animacje wejscia strony czekaja (paused), az nakladka zniknie. */
+.intro {
+  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center;
+  background: var(--bg); touch-action: none;
+  animation: intro-out .5s var(--ease) 4.5s forwards;
 }
+.intro::before {
+  content: ""; position: absolute; width: 90vmin; height: 90vmin; pointer-events: none;
+  background: radial-gradient(closest-side, var(--tint), transparent 72%);
+}
+.intro-logo { position: relative; display: grid; place-items: center; width: 160px; height: 160px; animation: intro-in .8s var(--ease) backwards; }
+.intro-logo img { width: 116px; height: 116px; border-radius: 50%; }
+.intro-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.intro-ring circle { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: intro-ring 1.1s var(--ease) .15s forwards; }
+@keyframes intro-in { from { opacity: 0; transform: scale(.86); } }
+@keyframes intro-ring { to { stroke-dashoffset: 0; } }
+@keyframes intro-out { to { opacity: 0; visibility: hidden; } }
+.intro-done .intro { opacity: 0; visibility: hidden; pointer-events: none; animation: none; transition: opacity .5s var(--ease), visibility 0s .5s; }
+.intro-done .intro-logo { transform: scale(1.12); transition: transform .5s var(--ease); }
+html.intro-on { overflow: hidden; }
+.intro-on .site-header, .intro-on .ht-in, .intro-on .caret, .intro-on .hero-sub, .intro-on .hero-cta, .intro-on .shot, .intro-on .hero-avatar { animation-play-state: paused; }
 
 /* ---------- Ruch ----------
    Animacje dzialaja u wszystkich, takze przy wlaczonym w systemie "ogranicz ruch" (czesto wlaczanym

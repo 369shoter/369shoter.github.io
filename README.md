@@ -110,10 +110,6 @@ wszystko można nadal zmienić ręcznie w `js/config.js` na GitHubie.
 
 Strona jest projektowana głównie pod telefony (większość osób wchodzi z linku w opisie TikToka lub Instagrama):
 
-- **Dolny pasek** („Obserwuj na TikToku” i „Udostępnij”) pojawia się po przewinięciu poza pierwszy ekran, chowa się
-  przy przewijaniu w dół i wraca przy przewijaniu w górę. „Udostępnij” otwiera systemowe menu udostępniania, a gdy
-  go nie ma (np. w przeglądarce wewnątrz aplikacji), kopiuje link. Kod: `setupDock` w `js/main.js`, style: „Dolny pasek”
-  w `css/style.css`. Na szerokich ekranach paska nie ma.
 - **Przewijanie filmów jak na TikToku:** w oknie z filmem przesunięcie palcem w górę/dół daje następny/poprzedni film
   z listy (filmy z sekcji, z której otwarto film, potem reszta), a stuknięcie to pauza/play. Na tablecie i komputerze są
   strzałki obok filmu i klawisze strzałek. Dolny pasek odtwarzacza TikToka (przewijanie, głośność) zostaje dostępny.
@@ -122,6 +118,16 @@ Strona jest projektowana głównie pod telefony (większość osób wchodzi z li
   otwartym odtwarzaczem, efekty `:hover` działają tylko tam, gdzie jest mysz.
 - Starsze przeglądarki w aplikacjach: style mają zapasowe wersje (`color-mix`, `dvh`, `overflow: clip`), a gdyby
   `js/main.js` się nie uruchomił, po 5 sekundach cała treść i tak staje się widoczna.
+
+## Ekran wczytywania i stały ciemny motyw
+
+Przy wejściu strona pokazuje na ok. 2 sekundy ekran z logo i zielonym pierścieniem, potem płynnie się odsłania,
+a dopiero wtedy wjeżdża tytuł. Kończy się, gdy strona jest załadowana (najwcześniej po ok. 1,5 s), stuknięcie go pomija,
+a najdłużej trwa 4,5 s, więc nigdy nie zablokuje strony (bez JavaScriptu też znika sam). Kod: sekcja „Ekran wczytywania”
+w `css/style.css` i znacznik `#intro` z małym skryptem na początku `<body>` w `index.html`. Żeby go wyłączyć,
+usuń ten znacznik i skrypt oraz klasę `intro-on` w skrypcie w `<head>`.
+
+Strona jest zawsze ciemna, niezależnie od ustawień telefonu.
 
 ## Animacje i ustawienie systemu „ogranicz ruch”
 
@@ -168,7 +174,7 @@ prosto na GitHubie (ikona ołówka).
 
 ```
 index.html                       treść strony
-css/style.css                    wygląd (ciemny motyw, jasny dla systemów w trybie jasnym)
+css/style.css                    wygląd (strona jest zawsze ciemna)
 js/config.js                     Twoje dane (linki, liczba filmów, starsze filmy)
 js/main.js                       działanie (odtwarzacz, karuzela, kopiowanie nicku)
 data/tiktok.js                   dane z TikToka (generowane automatycznie)
