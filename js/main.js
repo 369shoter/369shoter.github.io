@@ -241,23 +241,50 @@
 
   /* ---------- Odtwarzacz filmu ---------- */
   const dlg = $("#player");
+  const stage = $("#player-stage");
   const frame = $("#player-frame");
   const dlgLink = $("#player-link");
+  const fallback = $("#player-fallback");
+  const fallbackLink = $("#player-fallback-link");
+  const PLAYER_ORIGIN = "https://www.tiktok.com";
+
+  /* Czysty odtwarzacz TikToka (sam film i proste sterowanie, bez opisu, muzyki i polecanych filmow) */
+  const playerUrl = (id) =>
+    PLAYER_ORIGIN + "/player/v1/" + encodeURIComponent(id) +
+    "?autoplay=1&loop=1&rel=0&description=0&music_info=0&controls=1&progress_bar=1&play_button=1" +
+    "&volume_control=1&fullscreen_button=1&timestamp=0&native_context_menu=0&closed_caption=0";
 
   function openPlayer(v) {
-    if (!dlg || typeof dlg.showModal !== "function") {
+    // videoMode: "tiktok" w config.js otwiera film od razu na TikToku, bez okna na stronie
+    if (C.videoMode === "tiktok" || !dlg || typeof dlg.showModal !== "function") {
       window.open(videoUrl(v.id), "_blank", "noopener");
       return;
     }
-    frame.src = "https://www.tiktok.com/embed/v2/" + encodeURIComponent(v.id) + "?lang=pl-PL";
-    dlgLink.href = videoUrl(v.id);
+    stage.style.backgroundImage = 'url("' + (v.cover || "assets/covers/" + v.id + ".webp") + '")';
+    stage.classList.remove("is-ready");
+    fallback.hidden = true;
+    dlgLink.href = fallbackLink.href = videoUrl(v.id);
+    frame.src = playerUrl(v.id);
     dlg.showModal();
   }
 
   if (dlg) {
     $("#player-close").addEventListener("click", () => dlg.close());
     dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
-    dlg.addEventListener("close", () => frame.removeAttribute("src")); // zatrzymuje odtwarzanie
+    dlg.addEventListener("close", () => {
+      frame.removeAttribute("src"); // zatrzymuje odtwarzanie
+      stage.classList.remove("is-ready");
+    });
+    frame.addEventListener("load", () => stage.classList.add("is-ready"));
+
+    // Odtwarzacz TikToka wysyla komunikaty do strony: przy bledzie pokazujemy przycisk "Obejrzyj na TikToku"
+    window.addEventListener("message", (e) => {
+      if (e.origin !== PLAYER_ORIGIN || !dlg.open) return;
+      let d = e.data;
+      if (typeof d === "string") { try { d = JSON.parse(d); } catch (_) { return; } }
+      if (!d || !d["x-tiktok-player"]) return;
+      if (d.type === "onPlayerError") fallback.hidden = false;
+    });
   }
 
   /* ---------- Blok na dole: strona streamera (z config.js, bez adresu = ukryty) ---------- */

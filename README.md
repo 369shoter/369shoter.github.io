@@ -67,6 +67,7 @@ prosto na GitHubie (ikona ołówka).
 | Zaproszenie na serwer Discord | `discord.invite` |
 | Licznik osób online na Discordzie | `discord.serverId` (włącz "Widget serwera" w ustawieniach serwera) |
 | E-mail do współpracy | `email` |
+| Co po kliknięciu w film: okno na stronie czy od razu TikTok | `videoMode` (`"player"` albo `"tiktok"`) |
 | Ile filmów w rankingu i w "Najnowsze" | `topCount`, `latestCount` |
 | Starsze filmy do rankingu, własne tytuły | `videos` |
 | Duży blok na dole (strona streamera, dla którego robisz klipy) | `partner` (puste `url` chowa blok) |

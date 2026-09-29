@@ -55,6 +55,10 @@ window.SITE_CONFIG = {
     { source: "bestVideo", value: 237800, label: "wyświetleń najlepszego filmu" }
   ],
 
+  // Co się dzieje po kliknięciu w film: "player" otwiera go w oknie na tej stronie,
+  // "tiktok" od razu przenosi na TikToka (w nowej karcie, na telefonie zwykle do aplikacji).
+  videoMode: "player",
+
   // Ile filmów pokazać w "Najczęściej oglądane" i w "Najnowsze filmy".
   topCount: 6,
   latestCount: 4,

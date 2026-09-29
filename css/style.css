@@ -417,15 +417,30 @@ a.tile-ig:hover .tile-arrow, a.tile-yt:hover .tile-arrow, .tile-discord:has(.til
 .partner-link:hover .tile-arrow { opacity: 1; transform: rotate(45deg); background: var(--on-accent); color: var(--accent); }
 
 /* ---------- Odtwarzacz (okno z filmem) ---------- */
+/* Okno jest zawsze ciemne (tlo za nim tez), wiec kolory przyciskow ustawiamy tu na stale, nie z motywu strony */
 .player {
-  margin: auto; padding: 12px; width: min(376px, 94vw); max-height: 96dvh;
-  border: 1px solid var(--line-strong); border-radius: var(--r-card);
-  background: var(--bg-elev); color: var(--text);
+  --text: #edefec; --line-strong: rgb(255 255 255 / .24); --accent-ink: var(--accent); --bg-elev-2: #1a1d1b;
+  margin: auto; padding: 0; border: 0; background: transparent; color: var(--text);
+  max-width: none; max-height: none; overflow: visible;
 }
-.player::backdrop { background: rgb(5 6 6 / .8); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-.player-frame { height: min(730px, calc(100dvh - 130px)); border-radius: 12px; overflow: hidden; background: #000; }
-.player iframe { width: 100%; height: 100%; border: 0; }
-.player-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.player::backdrop { background: rgb(4 5 5 / .88); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+/* Scena ma proporcje 9:16 i miesci sie na ekranie (wysokosc okna minus pasek pod spodem).
+   Okladka filmu jest tlem na czas ladowania odtwarzacza. */
+.player-stage {
+  position: relative; overflow: hidden;
+  width: min(94vw, calc((100dvh - 132px) * 9 / 16), 440px); aspect-ratio: 9 / 16;
+  border-radius: var(--r-card); background: #000 center / cover no-repeat;
+  box-shadow: var(--shadow);
+}
+.player-stage::after { content: ""; position: absolute; inset: 0; background: rgb(0 0 0 / .5); transition: opacity .4s; pointer-events: none; }
+.player-stage.is-ready::after { opacity: 0; }
+.player-stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; opacity: 0; transition: opacity .4s; }
+.player-stage.is-ready iframe { opacity: 1; }
+.player-fallback {
+  position: absolute; inset: 0; z-index: 1; display: grid; place-content: center; justify-items: center; gap: 18px;
+  padding: 24px; text-align: center; background: rgb(0 0 0 / .84); font-size: 17px;
+}
+.player-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
 
 /* ---------- Stopka ---------- */
 .footer { border-top: 1px solid var(--line); padding: 40px 0 48px; }

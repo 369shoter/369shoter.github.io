@@ -207,7 +207,13 @@
   </footer>
 
   <dialog class="player" id="player" aria-label="Odtwarzacz filmu">
-    <div class="player-frame"><iframe id="player-frame" title="Film z TikToka" allow="autoplay; fullscreen; encrypted-media" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+    <div class="player-stage" id="player-stage">
+      <iframe id="player-frame" title="Film z TikToka" allow="autoplay; fullscreen; encrypted-media" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      <div class="player-fallback" id="player-fallback" hidden>
+        <p>Ten film nie chce się tutaj odtworzyć.</p>
+        <a class="btn btn-primary btn-sm" id="player-fallback-link" href="#" target="_blank" rel="noopener">Obejrzyj na TikToku<svg class="icon"><use href="#i-arrow-up-right"/></svg></a>
+      </div>
+    </div>
     <div class="player-bar">
       <a class="btn btn-ghost btn-sm" id="player-link" href="#" target="_blank" rel="noopener">Otwórz w TikToku<svg class="icon"><use href="#i-arrow-up-right"/></svg></a>
       <button class="icon-btn icon-btn-lg" id="player-close" type="button" aria-label="Zamknij odtwarzacz"><svg class="icon"><use href="#i-x"/></svg></button>
