@@ -97,7 +97,9 @@ Po zalogowaniu panel może pokazać, ile osób weszło na stronę, co klikają, 
 i urządzeń (dane zbiera GoatCounter). Serwer pobiera je za Ciebie, więc klucz do GoatCountera leży tylko
 w Cloudflare i nie trafia do przeglądarki.
 
-1. Zaloguj się na https://369shoter.goatcounter.com, wejdź w **Settings** -> zakładka **API** -> **Create new token**.
+1. Zaloguj się na https://369shoter.goatcounter.com i kliknij swoją nazwę użytkownika w prawym górnym rogu
+   (np. `369shoter@...`, obok „Sign out”), potem zakładkę **API** -> **Create new token**. To nie jest
+   „Settings” strony, tylko ustawienia konta użytkownika.
 2. Zaznacz tylko uprawnienie **Read statistics** (nic więcej) i utwórz token. Skopiuj go.
 3. W Cloudflare: Worker -> **Settings** -> **Variables and Secrets** -> **Add**, typ **Secret**, nazwa
    `GOATCOUNTER_TOKEN`, wartość: token z GoatCountera. Kliknij **Deploy**.

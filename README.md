@@ -79,8 +79,8 @@ nick i zaproszenie na Discorda, e-mail, blok z tsxnine.pl, tryb otwierania film�
 dodać starsze filmy (samym linkiem) i ukryć wybrane filmy. Zapis publikuje stronę w 1-2 minuty.
 
 Po zalogowaniu panel pokazuje też **statystyki odwiedzin** (odwiedzający, dzienny wykres, kliknięcia w linki i filmy,
-źródła, kraje, urządzenia; 7 / 30 / 90 dni). Dane pobiera z GoatCountera Worker, a klucz (token *Read statistics*,
-sekret `GOATCOUNTER_TOKEN` w Cloudflare) nie trafia do przeglądarki. Jak to włączyć: krok 8 w [`worker/README.md`](worker/README.md).
+źródła, kraje, urządzenia; 7 / 30 / 90 dni). Dane pobiera z GoatCountera Worker, a klucz (token *Read statistics*
+z menu użytkownika w GoatCounter -> API, sekret `GOATCOUNTER_TOKEN` w Cloudflare) nie trafia do przeglądarki. Jak to włączyć: krok 8 w [`worker/README.md`](worker/README.md).
 
 Ustawienia z panelu trafiają do `data/admin.js`, a to, co panel zmienia, ma pierwszeństwo przed
 `js/config.js`. Pole nietknięte w panelu nadal pochodzi z `config.js`.
