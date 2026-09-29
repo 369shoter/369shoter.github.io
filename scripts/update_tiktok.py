@@ -71,6 +71,29 @@ def get_stats():
     }
 
 
+def get_stats_from_embed():
+    """Zapasowe zrodlo liczb: embed profilu tez podaje obserwujacych i polubienia."""
+    html = fetch(f"https://www.tiktok.com/embed/@{USER}")
+    state = script_json(html, "__FRONTITY_CONNECT_STATE__")
+    for node in walk_dicts(state):
+        if "followerCount" in node:
+            return {
+                "followers": int(node["followerCount"]),
+                "likes": int(node.get("heartCount") or node.get("heart") or 0),
+            }
+    raise RuntimeError("embed nie zawiera liczby obserwujacych")
+
+
+def walk_dicts(node):
+    if isinstance(node, dict):
+        yield node
+        for value in node.values():
+            yield from walk_dicts(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from walk_dicts(value)
+
+
 def walk_videos(node):
     if isinstance(node, dict):
         if "playCount" in node and "id" in node:
@@ -198,16 +221,23 @@ def main():
     result = {"stats": previous.get("stats", {}), "videos": previous.get("videos", [])}
     changed = False
 
+    stats = None
     try:
         stats = get_stats()
+    except Exception as exc:  # noqa: BLE001
+        print(f"profil nie odpowiedzial ({exc}), probuje embed")
+        try:
+            stats = get_stats_from_embed()
+            stats["videos"] = (previous.get("stats") or {}).get("videos", 0)
+        except Exception as exc2:  # noqa: BLE001
+            warn(f"statystyki nie zaktualizowane ({exc2})")
+    if stats:
         if stats["followers"] > 0:
             result["stats"] = stats
             changed = True
             print(f"statystyki: {stats}")
         else:
-            warn("profil zwrocil 0 obserwujacych, zostawiam stare statystyki")
-    except Exception as exc:  # noqa: BLE001
-        warn(f"statystyki nie zaktualizowane ({exc})")
+            warn("TikTok zwrocil 0 obserwujacych, zostawiam stare statystyki")
 
     try:
         videos = get_videos()
@@ -233,6 +263,12 @@ def main():
                 time.sleep(0.4)
             result["videos"] = []
             for v in sorted(merged.values(), key=lambda x: int(x["id"]), reverse=True):
+                if not v.get("_cover") and not (COVERS / f"{v['id']}.webp").exists():
+                    # znany film, ktory wypadl z listy embedu, a jego okladki nie ma w repozytorium
+                    try:
+                        v["_cover"] = fetch_video_info(v["id"]).get("_cover")
+                    except Exception:  # noqa: BLE001
+                        pass
                 save_cover(v)
                 item = {"id": v["id"], "title": v["title"], "views": v["views"]}
                 lqip = make_lqip(v["id"])

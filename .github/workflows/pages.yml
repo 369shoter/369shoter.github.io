@@ -32,6 +32,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Baza to dane z dzialajacej strony, nie te z repozytorium (sa starsze). Dzieki temu,
+      # gdy TikTok chwilowo nie odda liczb, strona zostaje przy ostatnich znanych, a nie cofa sie.
+      - name: Wez ostatnie dane z dzialajacej strony
+        continue-on-error: true
+        run: |
+          curl -fsSL --retry 3 --max-time 30 "https://${{ github.repository_owner }}.github.io/data/tiktok.js" -o /tmp/live-tiktok.js
+          if grep -q '^window.TIKTOK_DATA' /tmp/live-tiktok.js; then
+            cp /tmp/live-tiktok.js data/tiktok.js
+            echo "Wczytano dane z dzialajacej strony"
+          fi
+
       - name: Odswiez dane z TikToka
         run: |
           pip install --quiet pillow
