@@ -362,6 +362,12 @@ a.tile-ig:hover .tile-arrow, .tile-discord:has(.tile-hit:hover) .tile-arrow { ba
 .vcard-more:hover .tile-arrow { background: var(--on-accent); color: var(--accent); opacity: 1; transform: rotate(45deg); }
 .vcard-more:focus-visible { outline-color: var(--text); }
 
+/* ---------- Najnowsze filmy (siatka) ---------- */
+.latest { padding-top: 0; }
+.latest .h2 { margin-bottom: clamp(28px, 4vw, 48px); }
+.latest-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (min-width: 820px) { .latest-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }
+
 /* ---------- Odtwarzacz (okno z filmem) ---------- */
 .player {
   margin: auto; padding: 12px; width: min(376px, 94vw); max-height: 96dvh;

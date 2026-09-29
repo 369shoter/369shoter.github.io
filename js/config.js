@@ -34,15 +34,22 @@ window.SITE_CONFIG = {
     { label: "tsxnine.pl", url: "https://tsxnine.pl" }
   ],
 
-  // Liczby pod hero. Wpisuj pełne liczby, strona sama je skróci (3749 -> 3,7K+).
-  // Zaokrąglane są zawsze w dół, więc zostają prawdą także gdy konto rośnie.
+  // Liczby pod hero. Strona sama je skróci (3749 -> 3,7K+) i zaokrągla w dół.
+  // "source" mówi, skąd brać świeżą wartość: dane z TikToka odświeżają się same raz dziennie
+  // (patrz README). "value" to zapas, gdyby danych z TikToka akurat nie było.
   stats: [
-    { value: 3749,   label: "obserwujących na TikToku" },
-    { value: 132722, label: "polubień pod filmami" },
-    { value: 237800, label: "wyświetleń najlepszego filmu" }
+    { source: "followers", value: 3749,   label: "obserwujących na TikToku" },
+    { source: "likes",     value: 132722, label: "polubień pod filmami" },
+    { source: "bestVideo", value: 237800, label: "wyświetleń najlepszego filmu" }
   ],
 
-  // Najpopularniejsze filmy. Kolejność = kolejność na stronie.
+  // Ile filmów pokazać w "Najczęściej oglądane" i w "Najnowsze filmy".
+  topCount: 6,
+  latestCount: 4,
+
+  // Filmy, które strona ma znać ZAWSZE, nawet gdy zejdą z listy ostatnich filmów TikToka
+  // (np. starsze hity). Liczby wyświetleń i nowe filmy dokładają się same, tu dopisujesz tylko
+  // rzeczy starsze albo chcesz własny tytuł.
   // id to długi numer z linku do filmu: tiktok.com/@369_shoter/video/7671803781754965281
   // Okładka jest brana z assets/covers/<id>.webp. Jeśli jej nie ma, karta pokaże ciemne tło,
   // a film i tak zadziała po kliknięciu.

@@ -1,8 +1,11 @@
-/* 369_shoter - logika strony. Teksty i dane zmieniasz w js/config.js, nie tutaj. */
+/* 369_shoter - logika strony. Teksty i dane zmieniasz w js/config.js, nie tutaj.
+   Dane z TikToka (liczby, lista filmow) odswieza automatycznie scripts/update_tiktok.py
+   i trafiaja do data/tiktok.js. */
 (() => {
   "use strict";
 
   const C = window.SITE_CONFIG || {};
+  const D = window.TIKTOK_DATA || {};
   const $ = (sel, root = document) => root.querySelector(sel);
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const isExternal = (url) => /^https?:\/\//i.test(url);
@@ -26,15 +29,16 @@
     return node;
   }
 
-  function icon(name) {
+  function svgUse(name, cls) {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("class", "icon");
+    svg.setAttribute("class", cls);
     svg.setAttribute("aria-hidden", "true");
     const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
     use.setAttribute("href", "#i-" + name);
     svg.append(use);
     return svg;
   }
+  const icon = (name) => svgUse(name, "icon");
 
   /* ---------- Linki (TikTok, Instagram, Discord) ---------- */
   const discord = C.discord || {};
@@ -112,13 +116,55 @@
     });
   })();
 
+  /* ---------- Filmy: laczymy liste z config.js z danymi z TikToka ---------- */
+  const idDesc = (a, b) => (b.id.length - a.id.length) || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
+  const pool = new Map();
+  (D.videos || []).forEach((v) => pool.set(v.id, { id: v.id, title: v.title, views: v.views }));
+  (C.videos || []).forEach((v) => {
+    const known = pool.get(v.id) || {};
+    // tytul z config.js ma pierwszenstwo, liczba wyswietlen: wieksza z dwoch (rosna tylko w gore)
+    pool.set(v.id, { ...known, ...v, views: Math.max(known.views || 0, v.views || 0) || undefined });
+  });
+  const allVideos = [...pool.values()];
+  const topVideos = allVideos
+    .slice()
+    .sort((a, b) => (b.views || 0) - (a.views || 0))
+    .slice(0, C.topCount || 6);
+  const latestVideos = allVideos.slice().sort(idDesc).slice(0, C.latestCount || 4);
+
+  const tiktokBase = (C.tiktok && C.tiktok.url) || "https://www.tiktok.com/";
+  const videoUrl = (id) => tiktokBase.replace(/\/$/, "") + "/video/" + id;
+
+  function videoCard(v) {
+    const title = v.title || "Film";
+    const img = el("img", { src: v.cover || "assets/covers/" + v.id + ".webp", alt: "", width: "360", height: "640", loading: "lazy" });
+    img.addEventListener("error", () => img.remove(), { once: true });
+    const media = el("button", { class: "vcard-media", type: "button", "aria-label": "Odtwórz film: " + title }, [
+      img,
+      el("span", { class: "play" }, [icon("play")]),
+    ]);
+    media.addEventListener("click", () => openPlayer(v));
+    return el("article", { class: "vcard" }, [
+      media,
+      el("h3", { class: "vcard-title", text: title }),
+      v.views ? el("p", { class: "vcard-views", text: short(v.views) + " wyświetleń" }) : null,
+    ]);
+  }
+
   /* ---------- Statystyki ---------- */
+  const live = {
+    followers: D.stats && D.stats.followers,
+    likes: D.stats && D.stats.likes,
+    bestVideo: allVideos.reduce((m, v) => Math.max(m, v.views || 0), 0),
+  };
   const statsEl = $("#stats");
   if (statsEl && Array.isArray(C.stats)) {
     C.stats.forEach((s) => {
-      const value = el("dd", {}, [el("span", { class: "num", text: short(s.value) }), el("span", { class: "suffix", text: "+" })]);
-      value.firstChild.dataset.target = s.value;
-      statsEl.append(el("div", { class: "stat" }, [el("dt", { text: s.label }), value]));
+      const value = (s.source && live[s.source]) || s.value || 0;
+      const num = el("span", { class: "num", text: short(value) });
+      num.dataset.target = value;
+      const dd = el("dd", {}, [num, el("span", { class: "suffix", text: "+" })]);
+      statsEl.append(el("div", { class: "stat" }, [el("dt", { text: s.label }), dd]));
     });
   }
 
@@ -135,41 +181,12 @@
     })(start);
   }
 
-  /* ---------- Filmy ---------- */
+  /* ---------- Karuzela "Najczesciej ogladane" ---------- */
   const track = $("#track");
-  const videos = Array.isArray(C.videos) ? C.videos : [];
-  const tiktokBase = (C.tiktok && C.tiktok.url) || "https://www.tiktok.com/";
-  const videoUrl = (id) => tiktokBase.replace(/\/$/, "") + "/video/" + id;
-
   if (track) {
-    videos.forEach((v) => {
-      const title = v.title || "Film";
-      const img = el("img", { src: v.cover || "assets/covers/" + v.id + ".webp", alt: "", width: "360", height: "640", loading: "lazy" });
-      img.addEventListener("error", () => img.remove(), { once: true });
-      const media = el("button", { class: "vcard-media", type: "button", "aria-label": "Odtwórz film: " + title }, [
-        img,
-        el("span", { class: "play" }, [icon("play")]),
-      ]);
-      media.addEventListener("click", () => openPlayer(v));
-
-      const card = el("article", { class: "vcard" }, [
-        media,
-        el("h3", { class: "vcard-title", text: title }),
-        v.views ? el("p", { class: "vcard-views", text: short(v.views) + " wyświetleń" }) : null,
-      ]);
-      track.append(card);
-    });
-
+    topVideos.forEach((v) => track.append(videoCard(v)));
     const more = el("a", { class: "vcard-more", href: tiktokBase, target: "_blank", rel: "noopener" }, [
-      (() => {
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("class", "tile-mark");
-        svg.setAttribute("aria-hidden", "true");
-        const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
-        use.setAttribute("href", "#i-tiktok");
-        svg.append(use);
-        return svg;
-      })(),
+      svgUse("tiktok", "tile-mark"),
       el("span", { class: "tile-arrow" }, [icon("arrow-up-right")]),
       el("span", { class: "vcard-more-title", text: "Wszystkie filmy" }),
     ]);
@@ -200,6 +217,22 @@
     }
   }
 
+  /* ---------- Siatka "Najnowsze filmy" ---------- */
+  const latestSection = $("#najnowsze");
+  const latestGrid = $("#latest-grid");
+  if (latestGrid) {
+    if (!latestVideos.length) {
+      latestSection.hidden = true;
+      document.querySelectorAll('a[href="#najnowsze"]').forEach((a) => (a.hidden = true));
+    }
+    latestVideos.forEach((v, i) => {
+      const card = videoCard(v);
+      card.setAttribute("data-reveal", "");
+      card.style.setProperty("--d", i * 0.07 + "s");
+      latestGrid.append(card);
+    });
+  }
+
   /* ---------- Odtwarzacz filmu ---------- */
   const dlg = $("#player");
   const frame = $("#player-frame");
@@ -226,6 +259,12 @@
     const list = $("#footer-links");
     const year = $("#year");
     if (year) year.textContent = new Date().getFullYear();
+
+    const updated = $("#updated");
+    if (updated && D.updated) {
+      const [y, m, d] = D.updated.split("-");
+      updated.textContent = "Statystyki z dnia " + d + "." + m + "." + y + ".";
+    }
     if (!list) return;
 
     const add = (href, label, iconName) => {

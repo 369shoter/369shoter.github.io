@@ -1,0 +1,68 @@
+name: Publikacja strony
+
+# Publikuje strone na GitHub Pages:
+#  - po kazdej zmianie w repozytorium,
+#  - codziennie rano (odswieza wtedy liczby i filmy z TikToka),
+#  - na zadanie (zakladka Actions -> Publikacja strony -> Run workflow).
+on:
+  push:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Publikujemy tylko z glownej galezi repozytorium
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Odswiez dane z TikToka
+        run: |
+          pip install --quiet pillow
+          python scripts/update_tiktok.py
+
+      - name: Zloz strone
+        run: |
+          mkdir _site
+          cp -r index.html css js assets data _site/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      # GitHub wylacza zaplanowane zadania po 60 dniach bez zmian w repozytorium.
+      # To wywolanie zeruje ten licznik, wiec codzienne odswiezanie nie zgasnie po cichu.
+      - name: Nie pozwol wylaczyc harmonogramu
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow enable pages.yml --repo "${{ github.repository }}"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
