@@ -81,31 +81,26 @@ dodać starsze filmy (samym linkiem) i ukryć wybrane filmy. Zapis publikuje str
 Ustawienia z panelu trafiają do `data/admin.js`, a to, co panel zmienia, ma pierwszeństwo przed
 `js/config.js`. Pole nietknięte w panelu nadal pochodzi z `config.js`.
 
-**Dwa tryby logowania** (wybiera go stała `WORKER_URL` na początku `admin/admin.js`):
+**Logowanie: hasło + kod 2FA.** Strona statyczna nie może sama bezpiecznie sprawdzić hasła, więc sprawdza je
+darmowy Worker w Cloudflare (`worker/admin-api.js`, adres w stałej `WORKER` w `admin/admin.js`). Token GitHub leży
+tylko w sekretach Cloudflare, nie w przeglądarce. Wejście wymaga hasła i kodu z aplikacji na telefonie, są limity
+błędnych prób, sesja trwa 20 minut (10 minut bezczynności), a serwer jeszcze raz waliduje każdy zapis. Instalacja
+i zarządzanie hasłem: [`worker/README.md`](worker/README.md). Sekrety (hasło, klucz sesji, klucz 2FA) wygenerujesz na
+`https://tymonekk.github.io/admin/setup.html` (działa lokalnie w przeglądarce, niczego nie wysyła).
 
-1. **Hasło + kod 2FA (zalecane).** Strona statyczna nie może sama bezpiecznie sprawdzić hasła, więc
-   sprawdza je darmowy Worker w Cloudflare (`worker/admin-api.js`). Token GitHub leży wtedy tylko w sekretach
-   Cloudflare, nie w przeglądarce. Wejście wymaga hasła i kodu z aplikacji na telefonie, są limity błędnych
-   prób, sesja trwa 20 minut, a serwer jeszcze raz waliduje każdy zapis. Instalacja krok po kroku:
-   [`worker/README.md`](worker/README.md). Sekrety (hasło, klucz sesji, klucz 2FA) wygenerujesz na
-   `https://tymonekk.github.io/admin/setup.html` (działa lokalnie w przeglądarce, niczego nie wysyła).
-2. **Token GitHub** (gdy `WORKER_URL` jest puste). Panel loguje się fine-grained tokenem (tylko to
-   repozytorium, tylko *Contents: Read and write*, ważność np. 30 dni) i zapisuje przez API GitHuba, które samo
-   sprawdza uprawnienia. Token żyje tylko w pamięci karty, wychodzi wyłącznie do `api.github.com`
-   i po 10 minutach bezczynności jest kasowany. Utworzysz go na
-   https://github.com/settings/personal-access-tokens/new . Włącz też 2FA na koncie GitHub.
+Pozostałe zabezpieczenia:
 
-Wspólne zabezpieczenia obu trybów:
-
-- Ścisła polityka CSP: tylko własne skrypty, żadnych obcych bibliotek, żadnego `innerHTML`.
+- Ścisła polityka CSP: tylko własne skrypty, żadnych obcych bibliotek, żadnego `innerHTML`, a połączenia
+  wyłącznie z tym jednym Workerem (nie z GitHubem ani z żadną inną domeną).
 - Panel nie da się wyświetlić w ramce (ochrona przed podszywaniem się) i ma `noindex`.
 - Strona publiczna nie ufa zapisanym ustawieniom: przyjmuje tylko znane pola, ogranicza długości
   i akceptuje wyłącznie adresy `https` (wpisy typu `javascript:` są ignorowane).
 
-**Uczciwe ograniczenie:** token GitHub (w obu trybach) ma prawo zapisu do całego repozytorium, więc jego
-kradzież pozwalałaby zmienić kod strony (zmiany widać w historii i cofnie się je jednym kliknięciem).
-W trybie z hasłem token jest schowany za hasłem i 2FA w Cloudflare, w trybie tokenu ma go przeglądarka,
-dlatego krótka ważność i brak zapisywania. Mocniejsza wersja to osobne repozytorium wyłącznie na dane panelu.
+**Uczciwe ograniczenie:** token GitHub w Cloudflare ma prawo zapisu do całego repozytorium (GitHub nie pozwala
+ograniczyć go do jednego pliku), więc kto przejmie konto Cloudflare, mógłby zmienić kod strony. Zmiany widać w historii
+i cofnie się je jednym kliknięciem. Konto Cloudflare zabezpiecz 2FA (albo 2FA na koncie Google, jeśli logujesz się
+przez Google). Mocniejsza wersja to osobne repozytorium wyłącznie na dane panelu. Gdyby panel przestał działać,
+wszystko można nadal zmienić ręcznie w `js/config.js` na GitHubie.
 
 ## Animacje i ustawienie systemu „ogranicz ruch”
 

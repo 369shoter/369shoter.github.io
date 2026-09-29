@@ -7,8 +7,8 @@
   <meta name="robots" content="noindex, nofollow">
   <meta name="referrer" content="no-referrer">
   <!-- Ta strona nie ma zadnych inline'owych skryptow, obcych bibliotek ani zewnetrznych zasobow.
-       Laczy sie tylko sama ze soba i z API GitHuba. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api.github.com; base-uri 'none'; form-action 'none'">
+       Laczy sie tylko z jednym serwerem logowania (Worker w Cloudflare). -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src https://369-panel.369shoter.workers.dev; base-uri 'none'; form-action 'none'">
   <link rel="icon" type="image/png" href="../assets/favicon.png">
   <link rel="stylesheet" href="../css/style.css?v=dev">
   <link rel="stylesheet" href="admin.css?v=dev">
@@ -26,12 +26,11 @@
       </div>
     </header>
 
-    <!-- 1. Logowanie. Widoczny jest tylko jeden z dwoch trybow (wybiera go WORKER_URL w admin.js):
-         haslo + 2FA przez Worker w Cloudflare albo token GitHub. -->
+    <!-- 1. Logowanie: haslo + kod 2FA, sprawdzane przez Worker w Cloudflare (worker/admin-api.js). -->
     <section class="adm-card" id="login">
       <h2 class="adm-h">Logowanie</h2>
 
-      <div class="adm-mode" id="mode-worker">
+      <div class="adm-mode">
         <p class="adm-p">Wpisz hasło do panelu i kod z aplikacji na telefonie. Hasło sprawdza serwer, nie ta strona, a po kilku błędnych próbach logowanie jest blokowane.</p>
         <form class="adm-form" id="wlogin-form" autocomplete="on">
           <label class="adm-label" for="w-pass">Hasło</label>
@@ -42,22 +41,6 @@
           </div>
           <p class="adm-p" id="w-no2fa" hidden>Serwer nie ma włączonego 2FA, więc wystarczy samo hasło. Zalecamy dodać sekret <code>TOTP_SECRET</code> w Cloudflare.</p>
           <button class="btn btn-primary" type="submit" id="wlogin-btn">Zaloguj</button>
-        </form>
-      </div>
-
-      <div class="adm-mode" id="mode-github">
-        <p class="adm-p">Panel zapisuje zmiany prosto do repozytorium GitHub, więc wpuszcza tylko osobę z Twoim tokenem GitHub. Nikt inny niczego tu nie zmieni, nawet gdy zna adres tej strony.</p>
-        <ol class="adm-steps">
-          <li>Wejdź na <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">github.com/settings/personal-access-tokens/new</a>.</li>
-          <li>Wybierz <b>Only select repositories</b> i wskaż tylko <b>tymonekk.github.io</b>.</li>
-          <li>W <b>Repository permissions</b> ustaw <b>Contents</b> na <b>Read and write</b> (reszta zostaje bez dostępu).</li>
-          <li>Ważność ustaw na krótką (np. 30 dni), wygeneruj token i wklej go poniżej.</li>
-        </ol>
-        <form class="adm-form" id="login-form" autocomplete="off">
-          <label class="adm-label" for="token">Token GitHub</label>
-          <input class="adm-input" id="token" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" required>
-          <label class="adm-check"><input type="checkbox" id="remember"> <span>Zapamiętaj do zamknięcia tej karty (mniej bezpieczne)</span></label>
-          <button class="btn btn-primary" type="submit" id="login-btn">Zaloguj</button>
         </form>
       </div>
 

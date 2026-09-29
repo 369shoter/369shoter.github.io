@@ -87,9 +87,9 @@ Kliknij **Deploy**, żeby sekrety zaczęły działać. Bez `TOTP_SECRET` panel w
 1. Adres Workera (na stronie Workera, np. `https://369-panel.twoja-nazwa.workers.dev`) otwórz
    w przeglądarce. Powinien pokazać `{"error":"Zabronione."}`: to znaczy, że działa i odrzuca
    wszystko, co nie przychodzi z Twojej strony.
-2. Podaj ten adres, a panel zostanie do niego podpięty (w `admin/admin.js` stała `WORKER_URL`
-   i ten sam adres w `connect-src` w `admin/index.html`).
-3. Od tej chwili `https://tymonekk.github.io/admin/` pyta o hasło i kod 2FA.
+2. Adres Workera jest wpisany w panelu w dwóch miejscach: stała `WORKER` w `admin/admin.js` i ten sam adres
+   w `connect-src` w `admin/index.html`. Jeśli kiedyś zmienisz nazwę Workera, zmień oba.
+3. `https://tymonekk.github.io/admin/` pyta o hasło i kod 2FA.
 
 ## Zmiana hasła, wylogowanie wszystkich
 

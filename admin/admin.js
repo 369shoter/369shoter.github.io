@@ -1,11 +1,8 @@
 /* Panel admina 369_shoter.
-   Dwa tryby logowania (wybiera go WORKER_URL):
-   - Worker (zalecany): haslo + kod 2FA sprawdza serwer w Cloudflare (worker/admin-api.js), a token GitHub jest
-     tylko tam, w sekretach Cloudflare. Przegladarka dostaje krotka sesje (20 min), trzymana wylacznie w pamieci karty.
-   - Token GitHub (gdy WORKER_URL jest pusty): fine-grained token, tylko to repozytorium, tylko "Contents: Read and
-     write", wychodzi wylacznie do api.github.com.
-   Strona ma restrykcyjne CSP (patrz index.html), nie uzywa innerHTML i nie da sie jej wyswietlic w ramce.
-   Kazda zmiane sprawdza jeszcze raz strona publiczna (js/main.js) i, w trybie Workera, sam Worker. */
+   Logowanie: haslo + kod 2FA, sprawdzane przez serwer w Cloudflare (worker/admin-api.js). Token GitHub jest tylko
+   tam, w sekretach Cloudflare, a nie w przegladarce. Przegladarka dostaje krotka sesje (20 min), trzymana wylacznie
+   w pamieci karty. Strona ma restrykcyjne CSP (patrz index.html: laczy sie tylko z tym jednym Workerem), nie uzywa
+   innerHTML i nie da sie jej wyswietlic w ramce. Kazda zmiane sprawdza jeszcze raz Worker i strona publiczna. */
 (() => {
   "use strict";
 
@@ -16,17 +13,9 @@
   }
   document.documentElement.classList.add("unframed");
 
-  // Adres Workera z Cloudflare, np. "https://369-panel.twoja-nazwa.workers.dev". Ten sam adres musi byc
-  // w connect-src w admin/index.html. Puste = logowanie tokenem GitHub.
-  const WORKER_URL = "";
-  const WORKER = WORKER_URL.replace(/\/+$/, "");
-
-  const REPO = "tymonekk/tymonekk.github.io";
-  const BRANCH = "main";
-  const FILE = "data/admin.js";
-  const API = "https://api.github.com";
+  // Adres Workera z Cloudflare. Ten sam adres musi byc w connect-src w admin/index.html.
+  const WORKER = "https://369-panel.369shoter.workers.dev";
   const IDLE_MS = 10 * 60 * 1000;
-  const SESSION_KEY = "panel-token";
 
   const CFG = window.SITE_CONFIG || {};
   const KNOWN = (window.TIKTOK_DATA && window.TIKTOK_DATA.videos) || [];
@@ -34,7 +23,7 @@
   const $ = (id) => document.getElementById(id);
   const on = (node, ev, fn) => node.addEventListener(ev, fn);
 
-  let token = "";        // token GitHub albo sesja Workera, tylko w pamieci
+  let token = "";        // sesja z Workera, tylko w pamieci
   let fileSha = null;    // wersja pliku na GitHubie (do wykrywania konfliktow)
   let extra = [];        // dodatkowe filmy: [{id, title}]
   let hidden = new Set();
@@ -42,21 +31,6 @@
   let expireTimer = 0;   // koniec sesji Workera (ustala serwer)
 
   /* ---------- pomocnicze ---------- */
-  const toBase64 = (text) => {
-    let bin = "";
-    new TextEncoder().encode(text).forEach((b) => { bin += String.fromCharCode(b); });
-    return btoa(bin);
-  };
-  const fromBase64 = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, "")), (c) => c.charCodeAt(0)));
-
-  function parseOverrides(text) {
-    const m = text.match(/window\.SITE_OVERRIDES\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
-    if (!m) return {};
-    try { const o = JSON.parse(m[1]); return o && typeof o === "object" && !Array.isArray(o) ? o : {}; } catch (_) { return {}; }
-  }
-  const serialize = (o) =>
-    "/* Plik zapisywany przez panel admina (admin/). Nie edytuj recznie. */\nwindow.SITE_OVERRIDES = " + JSON.stringify(o, null, 2) + ";\n";
-
   function showError(node, msg) { node.textContent = msg; node.hidden = !msg; }
   function setStatus(msg) { $("status").textContent = msg || ""; }
 
@@ -68,58 +42,10 @@
     return m ? m[1] : null;
   };
 
-  const isWorker = !!WORKER;
-
   class Conflict extends Error {}  // ktos zmienil ustawienia w miedzyczasie
-  class Expired extends Error {}   // token albo sesja wygasly lub zostaly cofniete
+  class Expired extends Error {}   // sesja wygasla lub zostala cofnieta
 
-  /* ---------- backend: GitHub (token) ---------- */
-  function gh(path, opts = {}) {
-    const headers = {
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      Authorization: "Bearer " + token,
-    };
-    if (opts.body) headers["Content-Type"] = "application/json";
-    return fetch(API + path, { ...opts, headers, cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer" });
-  }
-
-  async function loadFile() {
-    const res = await gh("/repos/" + REPO + "/contents/" + FILE + "?ref=" + BRANCH);
-    if (res.status === 404) { fileSha = null; return {}; }
-    if (res.status === 401) throw new Expired();
-    if (!res.ok) throw new Error("Nie udało się wczytać ustawień (GitHub: " + res.status + ").");
-    const j = await res.json();
-    fileSha = j.sha;
-    return parseOverrides(fromBase64(j.content || ""));
-  }
-
-  const githubBackend = {
-    async login({ token: t }) {
-      token = t.trim();
-      const r = await gh("/repos/" + REPO);
-      if (r.status === 401) throw new Error("Token jest nieprawidłowy albo wygasł.");
-      if (r.status === 403 || r.status === 404) throw new Error("Ten token nie ma dostępu do repozytorium " + REPO + ".");
-      if (!r.ok) throw new Error("GitHub odpowiedział błędem " + r.status + ".");
-      const repo = await r.json();
-      if (!repo.permissions || !repo.permissions.push) throw new Error("Ten token może tylko czytać. Nadaj mu uprawnienie Contents: Read and write.");
-      return loadFile();
-    },
-    load: loadFile,
-    async save(data) {
-      const body = { message: "Panel admina: aktualizacja ustawień", content: toBase64(serialize(data)), branch: BRANCH };
-      if (fileSha) body.sha = fileSha;
-      const res = await gh("/repos/" + REPO + "/contents/" + FILE, { method: "PUT", body: JSON.stringify(body) });
-      if (res.status === 401) throw new Expired();
-      if (res.status === 403 || res.status === 404) throw new Error("Ten token nie ma prawa zapisu. Nadaj mu Contents: Read and write.");
-      if (res.status === 409 || res.status === 422) throw new Conflict();
-      if (!res.ok) throw new Error("GitHub odpowiedział błędem " + res.status + ".");
-      const j = await res.json();
-      fileSha = j.content && j.content.sha ? j.content.sha : fileSha;
-    },
-  };
-
-  /* ---------- backend: Worker (haslo + 2FA) ---------- */
+  /* ---------- serwer logowania i zapisu (Worker) ---------- */
   async function workerCall(method, path, body) {
     let res;
     try {
@@ -141,7 +67,7 @@
   }
   const serverMsg = (json, fallback) => (typeof json.error === "string" && json.error ? json.error.slice(0, 200) : fallback);
 
-  const workerBackend = {
+  const backend = {
     async login({ password, code }) {
       const { res, json } = await workerCall("POST", "/login", { password, code });
       if (!res.ok || typeof json.token !== "string") throw new Error(serverMsg(json, "Serwer logowania odpowiedział błędem " + res.status + "."));
@@ -166,8 +92,6 @@
     },
   };
 
-  const backend = isWorker ? workerBackend : githubBackend;
-
   /* ---------- sesja ---------- */
   let sessionUntil = 0;
   const clockText = (ms) => new Date(ms).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
@@ -182,14 +106,13 @@
   }
 
   function clearInputs() {
-    ["token", "w-pass", "w-code"].forEach((id) => { const n = $(id); if (n) n.value = ""; });
+    ["w-pass", "w-code"].forEach((id) => { $(id).value = ""; });
   }
 
   function lock(msg) {
     token = "";
     fileSha = null;
     sessionUntil = 0;
-    try { sessionStorage.removeItem(SESSION_KEY); } catch (_) { /* brak dostepu do storage */ }
     clearInputs();
     $("editor").hidden = true;
     $("login").hidden = false;
@@ -387,15 +310,14 @@
   }
 
   /* ---------- start ---------- */
-  async function start(cred, remember) {
+  async function start(cred) {
     const err = $("login-error");
-    const btn = isWorker ? $("wlogin-btn") : $("login-btn");
+    const btn = $("wlogin-btn");
     showError(err, "");
     btn.disabled = true;
-    setStatus(isWorker ? "Loguję…" : "Sprawdzam token…");
+    setStatus("Loguję…");
     try {
       const overrides = await backend.login(cred);
-      if (remember && !isWorker) { try { sessionStorage.setItem(SESSION_KEY, token); } catch (_) { /* pomijamy */ } }
       fill(overrides);
       $("login").hidden = true;
       $("editor").hidden = false;
@@ -413,30 +335,16 @@
     }
   }
 
-  // Zostaje tylko formularz logowania wlasciwy dla trybu (drugi znika ze strony).
-  $(isWorker ? "mode-github" : "mode-worker").remove();
-  if (isWorker) {
-    on($("wlogin-form"), "submit", (e) => { e.preventDefault(); start({ password: $("w-pass").value, code: $("w-code").value }); });
-    // Czy Worker wymaga kodu 2FA? Gdy nie odpowiada, zostawiamy pole i pokazujemy powod przy logowaniu.
-    workerCall("GET", "/health").then(({ res, json }) => {
-      if (res.ok && json.totp === false) { $("w-code-wrap").hidden = true; $("w-no2fa").hidden = false; }
-      else if (!res.ok) showError($("login-error"), serverMsg(json, "Serwer logowania zgłasza błąd (" + res.status + ")."));
-    }).catch((e) => showError($("login-error"), e.message));
-  } else {
-    on($("login-form"), "submit", (e) => { e.preventDefault(); start({ token: $("token").value }, $("remember").checked); });
-  }
+  on($("wlogin-form"), "submit", (e) => { e.preventDefault(); start({ password: $("w-pass").value, code: $("w-code").value }); });
+  // Czy Worker wymaga kodu 2FA? Gdy nie odpowiada, zostawiamy pole i pokazujemy powod.
+  workerCall("GET", "/health").then(({ res, json }) => {
+    if (res.ok && json.totp === false) { $("w-code-wrap").hidden = true; $("w-no2fa").hidden = false; }
+    else if (!res.ok) showError($("login-error"), serverMsg(json, "Serwer logowania zgłasza błąd (" + res.status + ")."));
+  }).catch((e) => showError($("login-error"), e.message));
   on($("editor"), "submit", (e) => { e.preventDefault(); save(); });
   on($("add-video"), "click", addVideo);
   on($("new-video-url"), "keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addVideo(); } });
   on($("logout"), "click", () => lock("Wylogowano."));
   ["pointerdown", "keydown", "input"].forEach((ev) => on(document, ev, touch));
   on(window, "pagehide", () => { token = ""; });
-
-  // Token GitHub zapamietany tylko na czas tej karty (opcja "Zapamietaj"): probujemy wznowic sesje.
-  if (!isWorker) {
-    try {
-      const saved = sessionStorage.getItem(SESSION_KEY);
-      if (saved) start({ token: saved }, true);
-    } catch (_) { /* brak dostepu do storage */ }
-  }
 })();
