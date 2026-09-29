@@ -330,12 +330,14 @@
     dlgLink.href = fallbackLink.href = videoUrl(v.id);
     frame.src = playerUrl(v.id);
     dlg.showModal();
+    document.documentElement.classList.add("modal-open");
   }
 
   if (dlg) {
     $("#player-close").addEventListener("click", () => dlg.close());
     dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
     dlg.addEventListener("close", () => {
+      document.documentElement.classList.remove("modal-open");
       frame.removeAttribute("src"); // zatrzymuje odtwarzanie
       stage.classList.remove("is-ready");
     });
@@ -510,4 +512,7 @@
     const note = $("#privacy");
     if (note) note.textContent = "Odwiedziny liczy GoatCounter (anonimowo, bez ciasteczek).";
   })();
+
+  // Skrypt doszedl do konca: mozna zostawic ukrywanie sekcji przed animacja wjazdu (patrz index.html)
+  window.__app = true;
 })();

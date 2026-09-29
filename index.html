@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>369_shoter | Klipy z CS2, TikTok, Instagram, YouTube, Discord</title>
   <meta name="description" content="Klipy z CS2 i najlepsze akcje. Obserwuj 369_shoter na TikToku, Instagramie i YouTube, dołącz na Discordzie i zobacz najpopularniejsze filmy.">
-  <meta name="theme-color" content="#0b0c0d">
+  <meta name="theme-color" content="#0b0c0d" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f3f5f2" media="(prefers-color-scheme: light)">
 
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -52,7 +53,9 @@
   <!-- Numer wersji w adresach plikow (v=dev) workflow podmienia przy publikacji na znacznik czasu,
        dzieki czemu przegladarki nie trzymaja starych plikow po zmianach. -->
   <link rel="stylesheet" href="css/style.css?v=dev">
-  <script>document.documentElement.classList.add("js")</script>
+  <!-- Klasa "js" wlacza animacje wjazdu (sekcje startuja niewidoczne). Gdyby main.js sie nie uruchomil
+       (np. w bardzo starej przegladarce w aplikacji), po 5 s zdejmujemy ja, zeby cala tresc byla widoczna. -->
+  <script>document.documentElement.classList.add("js");setTimeout(function(){if(!window.__app)document.documentElement.classList.remove("js")},5000)</script>
 </head>
 <body>
   <a class="skip" href="#main">Przejdź do treści</a>
