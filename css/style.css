@@ -485,7 +485,17 @@ a.tile-ig:hover .tile-arrow, a.tile-yt:hover .tile-arrow, .tile-discord:has(.til
   a.tile:hover .tile-mark, .tile-discord:hover .tile-mark { transform: translate(-8px, -8px) rotate(-4deg) scale(1.05); }
   .vcard-media:hover .play::before { animation: ping 1.2s var(--ease) infinite; }
 }
+/* "Ogranicz ruch" wlaczone w systemie: zostaje tylko lagodne pojawianie sie (przezroczystosc).
+   Bez przesuwania, obracania, paralaksy, paska przewijania i odliczania liczb. */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  * { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  @keyframes fade-in { from { opacity: 0; } }
+  .site-header, .hero-title, .hero-sub, .hero-cta, .shot, .hero-avatar { animation: fade-in .8s ease both; }
+  .hero-sub { animation-delay: .15s; }
+  .hero-cta { animation-delay: .3s; }
+  .shot { animation-delay: calc(.2s + var(--i, 0) * .1s); }
+  .hero-avatar { animation-delay: .5s; }
+  .js [data-reveal] { opacity: 0; transition: opacity .7s ease; transition-delay: var(--d, 0s); }
+  .js [data-reveal].in { opacity: 1; }
+  .player[open]::backdrop { animation: fade-in .25s ease; }
 }

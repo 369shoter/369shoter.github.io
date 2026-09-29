@@ -328,13 +328,15 @@
   }
 
   const revealables = document.querySelectorAll("[data-reveal]");
-  if ("IntersectionObserver" in window && !reduceMotion) {
+  // Przy "ogranicz ruch" sekcje tez pojawiaja sie przy przewijaniu (samo przejscie przezroczystosci,
+  // patrz CSS), tylko liczby zostaja od razu w koncowej wartosci.
+  if ("IntersectionObserver" in window) {
     const io = new IntersectionObserver((entries, obs) => {
       entries.forEach((e) => {
         if (!e.isIntersecting) return;
         e.target.classList.add("in");
         obs.unobserve(e.target);
-        if (e.target === statsEl) {
+        if (e.target === statsEl && !reduceMotion) {
           // liczby wskakuja jedna po drugiej: najpierw zero, potem odliczanie z opoznieniem
           e.target.querySelectorAll(".num").forEach((n, i) => {
             n.textContent = "0";
