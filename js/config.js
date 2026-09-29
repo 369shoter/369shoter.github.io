@@ -13,6 +13,11 @@ window.SITE_CONFIG = {
     url: "https://www.instagram.com/369_shoter/"
   },
 
+  youtube: {
+    handle: "369_shoter",
+    url: "https://www.youtube.com/@369_shoter"
+  },
+
   discord: {
     // Twój nick na Discordzie. Pokazuje się z przyciskiem "Skopiuj nick".
     username: "tymon3kk",

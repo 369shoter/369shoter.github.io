@@ -173,6 +173,15 @@ ul { padding: 0; list-style: none; }
   .nav { display: flex; }
   .header-socials { margin-left: 0; }
 }
+/* Cztery ikony w naglowku musza sie zmiescic takze na waskich telefonach */
+@media (max-width: 420px) {
+  .header-inner { gap: 8px; }
+  .brand-name { font-size: 22px; }
+  .header-socials .icon-btn { width: 38px; height: 38px; }
+}
+@media (max-width: 359px) {
+  .header-inner .brand-name { display: none; }
+}
 
 /* ---------- Hero ---------- */
 .hero {
@@ -241,8 +250,8 @@ ul { padding: 0; list-style: none; }
 .links .h2 { margin-bottom: clamp(28px, 4vw, 48px); }
 .bento { display: grid; gap: 14px; }
 @media (min-width: 820px) {
-  .bento { grid-template-columns: 1.4fr 1fr; grid-template-rows: repeat(2, minmax(200px, 1fr)); min-height: 440px; }
-  .tile-tiktok { grid-row: span 2; }
+  .bento { grid-template-columns: 1.4fr 1fr; grid-template-rows: repeat(3, minmax(190px, auto)); }
+  .tile-tiktok { grid-row: span 3; }
 }
 
 .tile {
@@ -284,8 +293,9 @@ a.tile:hover .tile-arrow, .tile:has(.tile-hit:hover) .tile-arrow { opacity: 1; t
 .tile-tiktok:focus-visible { outline-color: var(--text); }
 
 .tile-ig { background: radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--text) 9%, transparent), transparent 60%), var(--bg-elev); }
+.tile-yt { background: radial-gradient(90% 120% at 0% 100%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 62%), var(--bg-elev); }
 .tile-discord { background: linear-gradient(165deg, var(--bg-elev-2), var(--bg-elev) 70%); }
-a.tile-ig:hover .tile-arrow, .tile-discord:has(.tile-hit:hover) .tile-arrow { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+a.tile-ig:hover .tile-arrow, a.tile-yt:hover .tile-arrow, .tile-discord:has(.tile-hit:hover) .tile-arrow { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
 .tile-hit { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
 .tile-online { font-size: 15px; color: var(--accent-ink); font-weight: 600; }

@@ -54,6 +54,7 @@ prosto na GitHubie (ikona ołówka).
 
 | Co | Gdzie w `config.js` |
 | --- | --- |
+| Adresy TikToka, Instagrama i YouTube | `tiktok`, `instagram`, `youtube` |
 | Zaproszenie na serwer Discord | `discord.invite` |
 | Licznik osób online na Discordzie | `discord.serverId` (włącz "Widget serwera" w ustawieniach serwera) |
 | E-mail do współpracy | `email` |

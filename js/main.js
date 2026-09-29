@@ -45,6 +45,7 @@
   const linkTargets = {
     tiktok: C.tiktok && C.tiktok.url,
     instagram: C.instagram && C.instagram.url,
+    youtube: C.youtube && C.youtube.url,
     discord: discord.invite || "#discord",
   };
   document.querySelectorAll("[data-link]").forEach((a) => {
@@ -274,6 +275,7 @@
     };
     if (C.tiktok && C.tiktok.url) add(C.tiktok.url, "TikTok", "tiktok");
     if (C.instagram && C.instagram.url) add(C.instagram.url, "Instagram", "instagram");
+    if (C.youtube && C.youtube.url) add(C.youtube.url, "YouTube", "youtube");
     if (discord.invite) add(discord.invite, "Discord", "discord");
     if (C.email) add("mailto:" + C.email, C.email, "envelope-simple");
     (C.extraLinks || []).forEach((l) => add(l.url, l.label, null));
