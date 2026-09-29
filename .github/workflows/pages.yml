@@ -40,7 +40,7 @@ jobs:
       - name: Zloz strone
         run: |
           mkdir _site
-          cp -r index.html 404.html robots.txt sitemap.xml site.webmanifest css js assets data admin _site/
+          cp -r index.html 404.html robots.txt sitemap.xml site.webmanifest favicon.ico css js assets data admin _site/
           # plik weryfikacyjny Google Search Console (google1234abcd.html), jesli jest w repozytorium
           cp google*.html _site/ 2>/dev/null || true
           # numer wersji w adresach plikow (patrz komentarz w index.html)
