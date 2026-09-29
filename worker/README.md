@@ -24,8 +24,14 @@ Nazwy przycisków w Cloudflare czasem się zmieniają, ale kolejność jest taka
 ### 1. Konto Cloudflare
 
 1. Załóż darmowe konto: https://dash.cloudflare.com/sign-up (karta nie jest potrzebna).
-2. Od razu włącz 2FA na samym koncie Cloudflare (**My Profile** -> **Authentication**). Kto przejmie
-   konto Cloudflare, ten zobaczy sekrety Workera.
+2. Zabezpiecz samo konto, bo kto je przejmie, ten dostanie token GitHub z sekretów Workera.
+   - Jeśli logujesz się do Cloudflare **e-mailem i hasłem**: włącz 2FA w Cloudflare
+     (**My Profile** -> **Authentication**).
+   - Jeśli logujesz się **przez Google** (albo Apple, GitHub): Cloudflare nie ma wtedy własnego hasła
+     i nie da się tam włączyć 2FA. O wejściu decyduje Twoje konto Google, więc włącz na nim
+     weryfikację dwuetapową (https://myaccount.google.com/security), najlepiej z powiadomieniem
+     na telefonie lub kluczem dostępu zamiast SMS-a. Nie zakładaj osobnego hasła w Cloudflare
+     tylko po to, żeby włączyć 2FA, bo to dodatkowa furtka do konta.
 
 ### 2. Wygeneruj sekrety
 
