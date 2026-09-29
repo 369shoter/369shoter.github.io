@@ -185,7 +185,12 @@
   /* ---------- Karuzela "Najczesciej ogladane" ---------- */
   const track = $("#track");
   if (track) {
-    topVideos.forEach((v) => track.append(videoCard(v)));
+    topVideos.forEach((v, i) => {
+      const card = videoCard(v);
+      card.setAttribute("data-reveal", "x");
+      card.style.setProperty("--d", Math.min(i, 5) * 0.08 + "s");
+      track.append(card);
+    });
     const more = el("a", { class: "vcard-more", href: tiktokBase, target: "_blank", rel: "noopener" }, [
       svgUse("tiktok", "tile-mark"),
       el("span", { class: "tile-arrow" }, [icon("arrow-up-right")]),
@@ -288,6 +293,40 @@
     new IntersectionObserver(([e]) => header.classList.toggle("is-stuck", !e.isIntersecting)).observe(sentinel);
   }
 
+  /* Tylko mysz i bez "ogranicz ruch": glebia w hero i podswietlenie kafelkow pod kursorem.
+     Zapisujemy tylko zmienne CSS, a ruch robi CSS (transform), wiec nie ma przeliczania ukladu. */
+  if (!reduceMotion && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    const hero = $(".hero");
+    const visual = $(".hero-visual");
+    if (hero && visual) {
+      let px = 0, py = 0, frame = 0;
+      const apply = () => {
+        frame = 0;
+        visual.style.setProperty("--px", px.toFixed(3));
+        visual.style.setProperty("--py", py.toFixed(3));
+      };
+      const queue = () => { if (!frame) frame = requestAnimationFrame(apply); };
+      hero.addEventListener("pointermove", (e) => {
+        const r = hero.getBoundingClientRect();
+        px = (e.clientX - r.left) / r.width - 0.5;
+        py = (e.clientY - r.top) / r.height - 0.5;
+        queue();
+      });
+      hero.addEventListener("pointerleave", () => { px = 0; py = 0; queue(); });
+    }
+
+    const bento = $(".bento");
+    if (bento) {
+      bento.addEventListener("pointermove", (e) => {
+        const tile = e.target.closest(".tile");
+        if (!tile) return;
+        const r = tile.getBoundingClientRect();
+        tile.style.setProperty("--mx", e.clientX - r.left + "px");
+        tile.style.setProperty("--my", e.clientY - r.top + "px");
+      });
+    }
+  }
+
   const revealables = document.querySelectorAll("[data-reveal]");
   if ("IntersectionObserver" in window && !reduceMotion) {
     const io = new IntersectionObserver((entries, obs) => {
@@ -295,7 +334,13 @@
         if (!e.isIntersecting) return;
         e.target.classList.add("in");
         obs.unobserve(e.target);
-        if (e.target === statsEl) e.target.querySelectorAll(".num").forEach(countUp);
+        if (e.target === statsEl) {
+          // liczby wskakuja jedna po drugiej: najpierw zero, potem odliczanie z opoznieniem
+          e.target.querySelectorAll(".num").forEach((n, i) => {
+            n.textContent = "0";
+            setTimeout(() => countUp(n), 250 + i * 160);
+          });
+        }
       });
     }, { threshold: 0.15, rootMargin: "0px 0px -6% 0px" });
     revealables.forEach((n) => io.observe(n));

@@ -52,6 +52,7 @@
   --section-y: clamp(72px, 11vw, 148px);
 
   --z-header: 20;
+  --z-progress: 25;
   --z-skip: 30;
 
   --font-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
@@ -202,14 +203,17 @@ ul { padding: 0; list-style: none; }
   letter-spacing: -.005em;
   padding-bottom: .04em;
 }
-.hero-title-2 { display: block; }
+/* Kazda linia tytulu jest w "masce", z ktorej tekst wysuwa sie od dolu (patrz sekcja Ruch).
+   Padding z ujemnym marginesem zostawia miejsce na podkreslnik, ktory wisi pod linia tekstu. */
+.ht-line { display: block; overflow: hidden; padding-bottom: .14em; margin-bottom: -.14em; }
+.ht-in { display: inline-block; }
 .hero-sub {
   margin-top: 24px; max-width: 30ch;
   font-size: clamp(18px, 2.2vw, 22px); line-height: 1.45; color: var(--muted);
 }
 .hero-cta { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 12px; }
 
-.hero-visual { position: relative; width: min(100%, 520px); aspect-ratio: 1 / 1.02; margin-inline: auto; }
+.hero-visual { --px: 0; --py: 0; position: relative; width: min(100%, 520px); aspect-ratio: 1 / 1.02; margin-inline: auto; }
 .shot {
   position: absolute; width: 43%; aspect-ratio: 9 / 16;
   border-radius: 18px; overflow: hidden;
@@ -218,10 +222,11 @@ ul { padding: 0; list-style: none; }
   background: var(--bg-elev);
 }
 .shot img { width: 100%; height: 100%; object-fit: cover; }
-.shot-a { left: 0;    top: 16%; rotate: -7deg; z-index: 1; }
-.shot-b { left: 28.5%; top: 0;   z-index: 2; }
-.shot-c { right: 0;   top: 15%; rotate: 7deg;  z-index: 1; }
+.shot-a { left: 0;    top: 16%; rotate: -7deg; z-index: 1; --depth: 34; }
+.shot-b { left: 28.5%; top: 0;   z-index: 2; --depth: -22; }
+.shot-c { right: 0;   top: 15%; rotate: 7deg;  z-index: 1; --depth: 20; }
 .hero-avatar {
+  --depth: -48;
   position: absolute; left: 4%; bottom: 0; z-index: 3;
   width: 34%; height: auto; aspect-ratio: 1; border-radius: 50%;
   border: 5px solid var(--bg);
@@ -297,6 +302,7 @@ a.tile:hover .tile-arrow, .tile:has(.tile-hit:hover) .tile-arrow { opacity: 1; t
 .tile-discord { background: linear-gradient(165deg, var(--bg-elev-2), var(--bg-elev) 70%); }
 a.tile-ig:hover .tile-arrow, a.tile-yt:hover .tile-arrow, .tile-discord:has(.tile-hit:hover) .tile-arrow { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
+.progress { display: none; }
 .tile-hit { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
 .tile-online { font-size: 15px; color: var(--accent-ink); font-weight: 600; }
 
@@ -351,6 +357,10 @@ a.tile-ig:hover .tile-arrow, a.tile-yt:hover .tile-arrow, .tile-discord:has(.til
   transition: transform .4s var(--ease);
 }
 .play .icon { margin-left: 3px; }
+.play::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid var(--accent); opacity: 0; pointer-events: none;
+}
 .vcard-media:hover { transform: translateY(-4px); border-color: var(--line-strong); }
 .vcard-media:hover img { transform: scale(1.04); }
 .vcard-media:hover .play { transform: scale(1.1); }
@@ -402,21 +412,78 @@ a.tile-ig:hover .tile-arrow, a.tile-yt:hover .tile-arrow, .tile-discord:has(.til
   @keyframes rise { from { opacity: 0; translate: 0 26px; } }
   @keyframes drop-in { from { opacity: 0; translate: 0 44px; scale: .94; } }
   @keyframes pop { from { opacity: 0; scale: .94; translate: 0 12px; } }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes fade-down { from { opacity: 0; translate: 0 -14px; } }
+  @keyframes line-up { from { translate: 0 125%; } }
+  @keyframes blink { 50% { opacity: 0; } }
+  @keyframes ping { from { opacity: .75; scale: 1; } to { opacity: 0; scale: 1.75; } }
+  @keyframes grow { from { scale: 0 1; } to { scale: 1 1; } }
+  @keyframes drift { to { translate: 0 -64px; } }
 
-  .hero-title    { animation: rise .9s var(--ease) both .05s; }
-  .hero-sub      { animation: rise .9s var(--ease) both .18s; }
-  .hero-cta      { animation: rise .9s var(--ease) both .3s; }
-  .shot          { animation: drop-in 1s var(--ease) both; animation-delay: calc(.2s + var(--i, 0) * .12s); }
-  .hero-avatar   { animation: drop-in 1s var(--ease) both .55s; }
+  /* Wejscie strony: naglowek, potem tytul, opis, przyciski, okladki. Kolejnosc = waznosc. */
+  .site-header { animation: fade-down .9s var(--ease) both; }
+  .ht-in { animation: line-up 1.05s var(--ease) both; }
+  .ht-line:nth-child(1) .ht-in { animation-delay: .08s; }
+  .ht-line:nth-child(2) .ht-in { animation-delay: .2s; }
+  /* Podkreslnik po tytule mruga jak kursor terminala, ale tylko kilka razy */
+  .caret { animation: blink 1.05s steps(1, end) 1.4s 6; }
+  .hero-sub      { animation: rise .9s var(--ease) both .5s; }
+  .hero-cta      { animation: rise .9s var(--ease) both .62s; }
+  .shot          { animation: drop-in 1s var(--ease) both; animation-delay: calc(.35s + var(--i, 0) * .12s); }
+  .hero-avatar   { animation: drop-in 1s var(--ease) both .8s; }
 
+  /* Glebia: okladki i awatar reaguja na kursor (zmienne --px/--py ustawia main.js) */
+  .shot, .hero-avatar {
+    translate: calc(var(--px) * var(--depth) * 1px) calc(var(--py) * var(--depth) * .7px);
+    transition: translate .6s var(--ease);
+  }
+
+  /* Wjazd sekcji przy przewijaniu */
   .js [data-reveal] {
     opacity: 0; translate: 0 28px;
     transition: opacity .8s var(--ease), translate .8s var(--ease), transform .4s var(--ease), border-color .25s, background-color .25s;
     transition-delay: var(--d, 0s), var(--d, 0s), 0s, 0s, 0s;
   }
   .js [data-reveal].in { opacity: 1; translate: 0 0; }
+  /* Karty filmow wjezdzaja z boku, jak rozdawane */
+  .js [data-reveal="x"] { translate: 44px 0; }
+  /* Naglowki sekcji odslaniaja sie od lewej do prawej (zapas na polskie znaki nad i pod literami).
+     Przycinany jest wewnetrzny .wipe, a obserwowany jest caly naglowek: calkowicie przyciety element
+     nie liczylby sie jako widoczny i nigdy by sie nie odslonil. */
+  .js .h2[data-reveal] { opacity: 1; translate: none; transition: none; }
+  .js .h2[data-reveal] .wipe {
+    display: block; width: fit-content; max-width: 100%;
+    clip-path: inset(-25% 102% -25% -2%);
+    transition: clip-path .95s var(--ease);
+    transition-delay: var(--d, 0s);
+  }
+  .js .h2[data-reveal].in .wipe { clip-path: inset(-25% -4% -25% -2%); }
 
   .player[open] { animation: pop .35s var(--ease); }
+  .player[open]::backdrop { animation: fade .35s var(--ease); }
+
+  /* Scroll-driven (Chrome, Edge, Safari 26+; w reszcie przegladarek po prostu ich nie ma) */
+  @supports (animation-timeline: scroll()) {
+    .progress {
+      display: block; position: fixed; inset: 0 0 auto 0; height: 3px; z-index: var(--z-progress);
+      background: var(--accent); transform-origin: 0 50%;
+      animation: grow linear both; animation-timeline: scroll(root);
+    }
+    .hero-visual { animation: drift linear both; animation-timeline: scroll(root); animation-range: 0 100vh; }
+  }
+}
+/* Tylko mysz: podswietlenie kafelka pod kursorem i reakcje na hover */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  .tile::before {
+    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0;
+    background: radial-gradient(340px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--accent) 16%, transparent), transparent 65%);
+    transition: opacity .35s;
+  }
+  .tile-tiktok::before { background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 50%), rgb(255 255 255 / .32), transparent 65%); }
+  .tile:hover::before { opacity: 1; }
+  .tile .tile-mark { transition: transform .9s var(--ease); }
+  a.tile:hover .tile-mark, .tile-discord:hover .tile-mark { transform: translate(-8px, -8px) rotate(-4deg) scale(1.05); }
+  .vcard-media:hover .play::before { animation: ping 1.2s var(--ease) infinite; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
