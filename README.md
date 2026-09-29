@@ -106,6 +106,23 @@ i cofnie się je jednym kliknięciem. Konto Cloudflare zabezpiecz 2FA (albo 2FA 
 przez Google). Mocniejsza wersja to osobne repozytorium wyłącznie na dane panelu. Gdyby panel przestał działać,
 wszystko można nadal zmienić ręcznie w `js/config.js` na GitHubie.
 
+## Wygoda na telefonie
+
+Strona jest projektowana głównie pod telefony (większość osób wchodzi z linku w opisie TikToka lub Instagrama):
+
+- **Dolny pasek** („Obserwuj na TikToku” i „Udostępnij”) pojawia się po przewinięciu poza pierwszy ekran, chowa się
+  przy przewijaniu w dół i wraca przy przewijaniu w górę. „Udostępnij” otwiera systemowe menu udostępniania, a gdy
+  go nie ma (np. w przeglądarce wewnątrz aplikacji), kopiuje link. Kod: `setupDock` w `js/main.js`, style: „Dolny pasek”
+  w `css/style.css`. Na szerokich ekranach paska nie ma.
+- **Przewijanie filmów jak na TikToku:** w oknie z filmem przesunięcie palcem w górę/dół daje następny/poprzedni film
+  z listy (filmy z sekcji, z której otwarto film, potem reszta), a stuknięcie to pauza/play. Na tablecie i komputerze są
+  strzałki obok filmu i klawisze strzałek. Dolny pasek odtwarzacza TikToka (przewijanie, głośność) zostaje dostępny.
+  Filmy obejrzane po przewinięciu liczą się w statystykach jako `film/<id>`.
+- Cele dotykowe mają co najmniej 44 px wysokości, treść nie wchodzi pod notch i pasek gestów, tło nie przewija się pod
+  otwartym odtwarzaczem, efekty `:hover` działają tylko tam, gdzie jest mysz.
+- Starsze przeglądarki w aplikacjach: style mają zapasowe wersje (`color-mix`, `dvh`, `overflow: clip`), a gdyby
+  `js/main.js` się nie uruchomił, po 5 sekundach cała treść i tak staje się widoczna.
+
 ## Animacje i ustawienie systemu „ogranicz ruch”
 
 Animacje (wejście strony, wjazd sekcji, karty filmów, liczby, kafelki, pasek postępu)

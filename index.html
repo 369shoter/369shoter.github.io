@@ -74,6 +74,7 @@
   <symbol id="i-envelope-simple" viewBox="0 0 256 256"><path d="M224,44H32A12,12,0,0,0,20,56V192a20,20,0,0,0,20,20H216a20,20,0,0,0,20-20V56A12,12,0,0,0,224,44ZM193.15,68,128,127.72,62.85,68ZM44,188V83.28l75.89,69.57a12,12,0,0,0,16.22,0L212,83.28V188Z"/></symbol>
   <symbol id="i-x" viewBox="0 0 256 256"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/></symbol>
   <symbol id="i-share" viewBox="0 0 256 256"><path d="M128 152V36M88 76l40-40 40 40M96 112H64a8 8 0 0 0-8 8v88a8 8 0 0 0 8 8h128a8 8 0 0 0 8-8v-88a8 8 0 0 0-8-8h-32" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 256 256"><path d="M216,48V208a16,16,0,0,1-16,16H160a16,16,0,0,1-16-16V48a16,16,0,0,1,16-16h40A16,16,0,0,1,216,48ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Z"/></symbol>
   <symbol id="i-play" viewBox="0 0 256 256"><path d="M240,128a15.74,15.74,0,0,1-7.6,13.51L88.32,229.65a16,16,0,0,1-16.2.3A15.86,15.86,0,0,1,64,216.13V39.87a15.86,15.86,0,0,1,8.12-13.82,16,16,0,0,1,16.2.3L232.4,114.49A15.74,15.74,0,0,1,240,128Z"/></symbol>
 </svg>
 
@@ -244,10 +245,19 @@
   <dialog class="player" id="player" aria-label="Odtwarzacz filmu">
     <div class="player-stage" id="player-stage">
       <iframe id="player-frame" title="Film z TikToka" allow="autoplay; fullscreen; encrypted-media" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      <div class="player-count" id="player-count" role="status" hidden></div>
+      <div class="player-hint" id="player-hint" aria-hidden="true"><svg class="icon"><use href="#i-caret-right"/></svg>Przesuń w górę: następny film</div>
+      <div class="player-flash" id="player-flash" aria-hidden="true"><svg class="icon"><use id="player-flash-icon" href="#i-play"/></svg></div>
+      <!-- Warstwa gestow tylko na dotyku: przesuniecie = kolejny film, stuniecie = pauza/play. Dolny pasek odtwarzacza zostaje wolny. -->
+      <div class="player-swipe" id="player-swipe"></div>
       <div class="player-fallback" id="player-fallback" hidden>
         <p>Ten film nie chce się tutaj odtworzyć.</p>
         <a class="btn btn-primary btn-sm" id="player-fallback-link" href="#" target="_blank" rel="noopener">Obejrzyj na TikToku<svg class="icon"><use href="#i-arrow-up-right"/></svg></a>
       </div>
+    </div>
+    <div class="player-nav" id="player-nav" hidden>
+      <button class="icon-btn icon-btn-lg" id="player-prev" type="button" aria-label="Poprzedni film"><svg class="icon"><use href="#i-caret-left"/></svg></button>
+      <button class="icon-btn icon-btn-lg" id="player-next" type="button" aria-label="Następny film"><svg class="icon"><use href="#i-caret-right"/></svg></button>
     </div>
     <div class="player-bar">
       <a class="btn btn-ghost btn-sm" id="player-link" href="#" target="_blank" rel="noopener">Otwórz w TikToku<svg class="icon"><use href="#i-arrow-up-right"/></svg></a>

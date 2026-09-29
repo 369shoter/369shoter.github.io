@@ -216,7 +216,7 @@
   const tiktokBase = (C.tiktok && C.tiktok.url) || "https://www.tiktok.com/";
   const videoUrl = (id) => tiktokBase.replace(/\/$/, "") + "/video/" + id;
 
-  function videoCard(v) {
+  function videoCard(v, list) {
     const title = v.title || "Film";
     const img = el("img", { src: v.cover || "assets/covers/" + v.id + ".webp", alt: "", width: "360", height: "640", loading: "lazy" });
     img.addEventListener("error", () => img.remove(), { once: true });
@@ -224,7 +224,7 @@
       img,
       el("span", { class: "play" }, [icon("play")]),
     ]);
-    media.addEventListener("click", () => openPlayer(v));
+    media.addEventListener("click", () => openPlayer(v, list));
     return el("article", { class: "vcard" }, [
       media,
       el("h3", { class: "vcard-title", text: title }),
@@ -266,7 +266,7 @@
   const track = $("#track");
   if (track) {
     topVideos.forEach((v, i) => {
-      const card = videoCard(v);
+      const card = videoCard(v, topVideos);
       card.setAttribute("data-reveal", "x");
       card.style.setProperty("--d", Math.min(i, 5) * 0.08 + "s");
       track.append(card);
@@ -312,20 +312,31 @@
       document.querySelectorAll('a[href="#najnowsze"]').forEach((a) => (a.hidden = true));
     }
     latestVideos.forEach((v, i) => {
-      const card = videoCard(v);
+      const card = videoCard(v, latestVideos);
       card.setAttribute("data-reveal", "");
       card.style.setProperty("--d", i * 0.07 + "s");
       latestGrid.append(card);
     });
   }
 
-  /* ---------- Odtwarzacz filmu ---------- */
+  /* ---------- Odtwarzacz filmu ----------
+     Okno z filmem z TikToka. Filmy z sekcji, z ktorej je otwarto (i reszta), tworza liste do przewijania:
+     na telefonie palcem w gore/dol jak na TikToku, na tablecie i komputerze strzalkami obok filmu albo klawiszami.
+     Stuniecie filmu na telefonie to pauza/play (warstwa gestow przykrywa odtwarzacz, z wyjatkiem jego dolnego paska). */
   const dlg = $("#player");
   const stage = $("#player-stage");
   const frame = $("#player-frame");
   const dlgLink = $("#player-link");
   const fallback = $("#player-fallback");
   const fallbackLink = $("#player-fallback-link");
+  const swipe = $("#player-swipe");
+  const countEl = $("#player-count");
+  const hintEl = $("#player-hint");
+  const flashEl = $("#player-flash");
+  const flashIcon = $("#player-flash-icon");
+  const navEl = $("#player-nav");
+  const prevBtn = $("#player-prev");
+  const nextBtn = $("#player-next");
   const PLAYER_ORIGIN = "https://www.tiktok.com";
 
   /* Czysty odtwarzacz TikToka (sam film i proste sterowanie, bez opisu, muzyki i polecanych filmow) */
@@ -333,20 +344,124 @@
     PLAYER_ORIGIN + "/player/v1/" + encodeURIComponent(id) +
     "?autoplay=1&loop=1&rel=0&description=0&music_info=0&controls=1&progress_bar=1&play_button=1" +
     "&volume_control=1&fullscreen_button=1&timestamp=0&native_context_menu=0&closed_caption=0";
+  const coverOf = (v) => v.cover || "assets/covers/" + v.id + ".webp";
 
-  function openPlayer(v) {
+  let playlist = [];
+  let index = 0;
+  let busy = false;      // trwa animacja przejscia
+  let playing = false;   // ostatni znany stan odtwarzacza (z jego komunikatow)
+
+  // Lista do przewijania: najpierw filmy z sekcji, z ktorej otwarto film, potem pozostale (bez powtorzen)
+  const queueFor = (list) => {
+    const seen = new Set();
+    return [...list, ...topVideos, ...latestVideos].filter((v) => (seen.has(v.id) ? false : (seen.add(v.id), true)));
+  };
+
+  // Polecenia dla odtwarzacza TikToka (play, pause, mute, unMute)
+  const command = (type) => {
+    if (frame.contentWindow) frame.contentWindow.postMessage({ type, "x-tiktok-player": true }, PLAYER_ORIGIN);
+  };
+
+  function setFallback(show) {
+    fallback.hidden = !show;
+    stage.classList.toggle("is-fallback", show);
+  }
+
+  function updateNav() {
+    const n = playlist.length;
+    countEl.hidden = n < 2;
+    countEl.textContent = (index + 1) + " / " + n;
+    navEl.hidden = n < 2;
+    prevBtn.disabled = index <= 0;
+    nextBtn.disabled = index >= n - 1;
+  }
+
+  function showClip(i) {
+    const v = playlist[i];
+    index = i;
+    playing = false;
+    stage.style.backgroundImage = 'url("' + coverOf(v) + '")';
+    stage.classList.remove("is-ready");
+    setFallback(false);
+    dlgLink.href = fallbackLink.href = videoUrl(v.id);
+    frame.src = playerUrl(v.id);
+    updateNav();
+    // okladki sasiednich filmow: przejscie bez pustego tla
+    [playlist[i + 1], playlist[i - 1]].forEach((n) => { if (n) new Image().src = coverOf(n); });
+  }
+
+  function openPlayer(v, list) {
     // videoMode: "tiktok" w config.js otwiera film od razu na TikToku, bez okna na stronie
     if (C.videoMode === "tiktok" || !dlg || typeof dlg.showModal !== "function") {
       window.open(videoUrl(v.id), "_blank", "noopener");
       return;
     }
-    stage.style.backgroundImage = 'url("' + (v.cover || "assets/covers/" + v.id + ".webp") + '")';
-    stage.classList.remove("is-ready");
-    fallback.hidden = true;
-    dlgLink.href = fallbackLink.href = videoUrl(v.id);
-    frame.src = playerUrl(v.id);
+    playlist = queueFor(list || [v]);
+    showClip(Math.max(0, playlist.findIndex((x) => x.id === v.id)));
     dlg.showModal();
     document.documentElement.classList.add("modal-open");
+    showHintOnce();
+  }
+
+  /* Wskazowka "Przesun w gore": raz na przegladarke, tylko na dotyku, tylko gdy jest co przewijac */
+  let hintSeen = false;
+  const hideHint = () => hintEl.classList.remove("is-on");
+  function showHintOnce() {
+    if (hintSeen || playlist.length < 2 || !window.matchMedia("(hover: none) and (pointer: coarse)").matches) return;
+    hintSeen = true;
+    try { if (localStorage.getItem("swipe-hint")) return; localStorage.setItem("swipe-hint", "1"); } catch (_) { return; }
+    hintEl.classList.add("is-on");
+    setTimeout(hideHint, 3400);
+  }
+
+  // Film ogladany po przewinieciu tez trafia do statystyk (pierwszy liczy sie z klikniecia w karte)
+  function countView(v) {
+    const gc = window.goatcounter;
+    if (gc && typeof gc.count === "function") gc.count({ path: "film/" + v.id, title: "Film: " + (v.title || v.id), event: true });
+  }
+
+  /* Przejscie do kolejnego/poprzedniego filmu: obecny odjezdza, nowy wjezdza z przeciwnej strony.
+     dir: +1 nastepny, -1 poprzedni. fromY: gdzie palec zostawil scene (przy przeciaganiu). */
+  function go(dir, fromY = 0) {
+    const to = index + dir;
+    if (busy || to < 0 || to >= playlist.length) return false;
+    busy = true;
+    hideHint();
+    const swap = () => { stage.style.transform = ""; showClip(to); countView(playlist[to]); };
+    if (typeof stage.animate !== "function") { swap(); busy = false; return true; }
+    stage.animate(
+      [{ transform: "translateY(" + fromY + "px)", opacity: 1 }, { transform: "translateY(" + (-dir * 90) + "px)", opacity: 0 }],
+      { duration: 170, easing: "ease-in", fill: "forwards" }
+    ).finished
+      .then(() => {
+        swap();
+        stage.getAnimations().forEach((a) => a.cancel());
+        return stage.animate(
+          [{ transform: "translateY(" + (dir * 90) + "px)", opacity: 0 }, { transform: "none", opacity: 1 }],
+          { duration: 300, easing: "cubic-bezier(.16, 1, .3, 1)" }
+        ).finished;
+      })
+      .catch(() => { /* animacje anulowane, np. przy zamknieciu okna */ })
+      .finally(() => { stage.getAnimations().forEach((a) => a.cancel()); stage.style.transform = ""; busy = false; });
+    return true;
+  }
+
+  // Wrocenie sceny na miejsce, gdy gest byl za krotki albo nie ma dokad przewijac
+  function snapBack(fromY) {
+    if (typeof stage.animate === "function" && fromY) {
+      stage.style.transform = "";
+      stage.animate([{ transform: "translateY(" + fromY + "px)" }, { transform: "none" }], { duration: 240, easing: "cubic-bezier(.16, 1, .3, 1)" });
+    } else {
+      stage.style.transform = "";
+    }
+  }
+
+  // Blysk ikony pauzy/play po stuknieciu
+  function flash(name) {
+    flashIcon.setAttribute("href", "#i-" + name);
+    flashEl.classList.remove("is-on");
+    void flashEl.offsetWidth; // ponowne uruchomienie animacji
+    flashEl.classList.add("is-on");
   }
 
   if (dlg) {
@@ -356,29 +471,83 @@
       document.documentElement.classList.remove("modal-open");
       frame.removeAttribute("src"); // zatrzymuje odtwarzanie
       stage.classList.remove("is-ready");
+      stage.getAnimations && stage.getAnimations().forEach((a) => a.cancel());
+      stage.style.transform = "";
+      busy = false;
+      hideHint();
     });
     frame.addEventListener("load", () => stage.classList.add("is-ready"));
 
-    // Polecenia dla odtwarzacza TikToka (play, pause, mute, unMute)
-    const command = (type) => {
-      if (frame.contentWindow) frame.contentWindow.postMessage({ type, "x-tiktok-player": true }, PLAYER_ORIGIN);
+    prevBtn.addEventListener("click", () => go(-1));
+    nextBtn.addEventListener("click", () => go(1));
+    dlg.addEventListener("keydown", (e) => {
+      const next = e.key === "ArrowDown" || e.key === "ArrowRight" || e.key === "j";
+      const prev = e.key === "ArrowUp" || e.key === "ArrowLeft" || e.key === "k";
+      if (!next && !prev) return;
+      e.preventDefault();
+      go(next ? 1 : -1);
+    });
+
+    /* Gesty palcem: przeciaganie sceny, po puszczeniu przejscie do innego filmu albo powrot.
+       Krotkie stuniecie (bez ruchu) to pauza/play. Na krancach listy scena "gumowo" wraca. */
+    let startY = 0, startT = 0, dy = 0, dragging = false, moved = false, swallowClickUntil = 0;
+    const atEnd = (d) => (d < 0 && index >= playlist.length - 1) || (d > 0 && index <= 0);
+    const shown = () => (atEnd(dy) ? dy * 0.25 : dy);
+
+    swipe.addEventListener("pointerdown", (e) => {
+      if (busy || !e.isPrimary) return;
+      dragging = true; moved = false; dy = 0;
+      startY = e.clientY; startT = e.timeStamp;
+      try { swipe.setPointerCapture(e.pointerId); } catch (_) { /* brak przechwytywania: gest dziala i tak */ }
+    });
+    swipe.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      dy = e.clientY - startY;
+      if (!moved && Math.abs(dy) > 8) { moved = true; hideHint(); }
+      if (moved) stage.style.transform = "translateY(" + shown() + "px)";
+    });
+    const finish = (e) => {
+      if (!dragging) return;
+      dragging = false;
+      const dt = Math.max(e.timeStamp - startT, 1); // czas zdarzen, nie obslugi: odporne na chwilowe zacinanie strony
+      const speed = dy / dt; // px/ms, ujemna = w gore
+      const from = shown();
+      if (!moved && e.type === "pointerup" && dt < 600) {
+        playing = !playing; // od razu, prawdziwy stan poprawi komunikat odtwarzacza
+        command(playing ? "play" : "pause");
+        flash(playing ? "play" : "pause");
+        return;
+      }
+      swallowClickUntil = performance.now() + 350;
+      // dluzsze przeciagniecie albo krotkie, ale szybkie machniecie (ok. 0,3 px/ms i wiecej)
+      const forward = dy < -60 || (dy < -24 && speed < -0.3);
+      const back = dy > 60 || (dy > 24 && speed > 0.3);
+      if (e.type === "pointerup" && (forward || back) && go(forward ? 1 : -1, from)) return;
+      snapBack(from);
     };
+    swipe.addEventListener("pointerup", finish);
+    swipe.addEventListener("pointercancel", finish);
+    // po przesunieciu przegladarka moze wygenerowac "click": nie ma on zamknac okna
+    swipe.addEventListener("click", (e) => { if (performance.now() < swallowClickUntil) { e.stopPropagation(); e.preventDefault(); } }, true);
 
     // Odtwarzacz TikToka wysyla komunikaty do strony (start, stan, blad).
     // Autoodtwarzanie zawsze startuje z wyciszeniem, wiec zaraz po starcie wlaczamy dzwiek: przegladarka
-    // pozwala na to, bo uzytkownik przed chwila kliknal w karte filmu. Gdyby jednak zablokowala dzwiek
-    // (film sie zatrzymuje, zanim ruszy), wyciszamy i wznawiamy, zeby film i tak sie odtwarzal.
+    // pozwala na to, bo uzytkownik przed chwila kliknal w karte filmu albo przesunal palcem. Gdyby jednak
+    // zablokowala dzwiek (film sie zatrzymuje, zanim ruszy), wyciszamy i wznawiamy, zeby film i tak sie odtwarzal.
     let started = false;
     window.addEventListener("message", (e) => {
       if (e.origin !== PLAYER_ORIGIN || !dlg.open) return;
       let d = e.data;
       if (typeof d === "string") { try { d = JSON.parse(d); } catch (_) { return; } }
       if (!d || !d["x-tiktok-player"]) return;
-      if (d.type === "onPlayerError") fallback.hidden = false;
+      if (d.type === "onPlayerError") setFallback(true);
       if (d.type === "onPlayerReady") { started = false; command("unMute"); }
       if (d.type === "onStateChange") {
-        if (d.value === 1) started = true;
-        else if (d.value === 2 && !started) { command("mute"); command("play"); started = true; }
+        if (d.value === 1) { started = true; playing = true; }
+        else if (d.value === 2) {
+          playing = false;
+          if (!started) { command("mute"); command("play"); started = true; }
+        }
       }
     });
   }
