@@ -215,6 +215,10 @@ ul { padding: 0; list-style: none; }
   background: var(--bg-elev);
 }
 .shot img { width: 100%; height: 100%; object-fit: cover; }
+/* Podmiana okladki w hero: nowa warstwa wjezdza nad stara (patrz heroCovers w main.js) */
+.shot img.shot-next { position: absolute; inset: 0; opacity: 0; transform: scale(1.07); transition: opacity .9s ease, transform 1.4s var(--ease); }
+.shot img.shot-next.is-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .shot img.shot-next { transform: none; } }
 .shot-a { left: 0;    top: 16%; rotate: -7deg; z-index: 1; --depth: 34; }
 .shot-b { left: 28.5%; top: 0;   z-index: 2; --depth: -22; }
 .shot-c { right: 0;   top: 15%; rotate: 7deg;  z-index: 1; --depth: 20; }

@@ -308,6 +308,60 @@
     });
   }
 
+  /* ---------- Hero: okladki podmieniaja sie na zywo, zawsze sposrod 6 najlepszych filmow ----------
+     Przy wejsciu losujemy 3 z 6 najczesciej ogladanych, a potem co chwile jedna z trzech kart plynnie zmienia okladke
+     na inna z tej szostki (nigdy taka, ktora juz jest widoczna). Nic sie nie dzieje, gdy karta jest poza ekranem,
+     zakladka jest w tle albo trwa ekran wczytywania. Gdy okladka sie nie zaladuje, zostaje poprzednia. */
+  (function heroCovers() {
+    const shots = document.querySelectorAll(".hero-visual .shot");
+    if (shots.length !== 3) return;
+    const best = allVideos.slice().sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 6);
+    if (best.length < 4) return; // za malo filmow, zeby cokolwiek podmieniac
+    const cover = (v) => v.cover || "assets/covers/" + v.id + ".webp";
+    const shuffled = best.slice().sort(() => Math.random() - 0.5);
+    const shown = shuffled.slice(0, 3);
+    let spare = shuffled.slice(3);
+    shots.forEach((shot, i) => { const img = shot.querySelector("img"); if (img) img.src = cover(shown[i]); });
+
+    let visible = true;
+    const visual = $(".hero-visual");
+    if ("IntersectionObserver" in window && visual) new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(visual);
+
+    const order = [1, 0, 2]; // najpierw srodkowa, potem lewa, potem prawa
+    let step = 0;
+    let busyShot = false;
+    function swap() {
+      if (busyShot || !spare.length) return;
+      const slot = order[step++ % 3];
+      const shot = shots[slot];
+      const old = shot.querySelector("img");
+      const candidate = spare[Math.floor(Math.random() * spare.length)];
+      if (!old) return;
+      busyShot = true;
+      const next = new Image();
+      next.alt = "";
+      next.width = 360;
+      next.height = 640;
+      next.decoding = "async";
+      next.className = "shot-next";
+      next.onload = () => {
+        shot.append(next);
+        void next.offsetWidth; // uruchamia przejscie
+        next.classList.add("is-in");
+        spare = spare.filter((v) => v !== candidate);
+        spare.push(shown[slot]);
+        shown[slot] = candidate;
+        setTimeout(() => { old.remove(); next.className = ""; busyShot = false; }, 1100);
+      };
+      next.onerror = () => { spare = spare.filter((v) => v !== candidate); busyShot = false; }; // zla okladka: pomijamy ja
+      next.src = cover(candidate);
+    }
+    setInterval(() => {
+      if (document.hidden || !visible || document.documentElement.classList.contains("intro-on")) return;
+      swap();
+    }, 2800);
+  })();
+
   /* ---------- Odtwarzacz filmu ----------
      Okno z filmem z TikToka. Filmy z sekcji, z ktorej je otwarto (i reszta), tworza liste do przewijania:
      na telefonie palcem w gore/dol jak na TikToku, na tablecie i komputerze strzalkami obok filmu albo klawiszami.
