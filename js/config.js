@@ -31,6 +31,13 @@ window.SITE_CONFIG = {
     serverId: ""
   },
 
+  // Statystyki odwiedzin i kliknięć (GoatCounter: darmowy, bez ciasteczek, nie wymaga banera zgód).
+  // 1. Załóż konto na https://www.goatcounter.com/signup i wybierz nazwę, np. "369shoter".
+  // 2. Wpisz ją tutaj (albo w panelu admina). Puste "" = statystyki wyłączone.
+  analytics: {
+    goatcounter: ""
+  },
+
   // Adres e-mail do współpracy. Zostaw puste "", jeśli nie chcesz go pokazywać.
   email: "",
 

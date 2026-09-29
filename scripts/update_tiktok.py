@@ -133,6 +133,42 @@ def save_cover(video):
         return False
 
 
+ADMIN_FILE = ROOT / "data" / "admin.js"
+
+
+def read_admin_video_ids():
+    """Numery filmow dodanych recznie w panelu admina (data/admin.js)."""
+    if not ADMIN_FILE.exists():
+        return []
+    m = re.search(r"window\.SITE_OVERRIDES\s*=\s*(\{.*\})\s*;?\s*$", ADMIN_FILE.read_text("utf-8"), re.S)
+    if not m:
+        return []
+    try:
+        overrides = json.loads(m.group(1))
+    except ValueError:
+        return []
+    ids = []
+    for v in (overrides.get("videos") or [])[:30]:
+        vid = str(v.get("id", "")) if isinstance(v, dict) else ""
+        if re.fullmatch(r"\d{15,25}", vid) and vid not in ids:
+            ids.append(vid)
+    return ids
+
+
+def fetch_video_info(vid):
+    """Tytul, adres okladki i liczba wyswietlen dowolnego publicznego filmu po jego numerze."""
+    oembed = json.loads(fetch("https://www.tiktok.com/oembed?url=https://www.tiktok.com/@_/video/" + vid))
+    info = {"id": vid, "title": clean_title(oembed.get("title")), "views": 0, "_cover": oembed.get("thumbnail_url")}
+    try:
+        page = fetch(f"https://www.tiktok.com/embed/v2/{vid}")
+        m = re.search(r'"playCount":(\d+)', page)
+        if m:
+            info["views"] = int(m.group(1))
+    except Exception:  # noqa: BLE001 - liczba wyswietlen jest dodatkiem
+        pass
+    return info
+
+
 def read_previous():
     if not DATA_FILE.exists():
         return {}
@@ -160,15 +196,33 @@ def main():
         videos = get_videos()
         if videos:
             # zachowaj znane wczesniej filmy, ktore nie weszly do najnowszej listy
-            merged = {v["id"]: v for v in previous.get("videos", [])}
+            # (filmy dodane recznie w panelu i potem usuniete stamtad znikaja)
+            extras = read_admin_video_ids()
+            merged = {v["id"]: v for v in previous.get("videos", []) if not v.get("extra") or v["id"] in extras}
+            latest_ids = set()
             for v in videos:
                 merged[v["id"]] = v
+                latest_ids.add(v["id"])
+            for vid in extras:
+                if vid in latest_ids:
+                    continue
+                try:
+                    info = fetch_video_info(vid)
+                    info["extra"] = True
+                    merged[vid] = info
+                    print(f"  film z panelu {vid}: {info['title']!r}, {info['views']} wyswietlen")
+                except Exception as exc:  # noqa: BLE001
+                    warn(f"film {vid} z panelu nie pobrany ({exc})")
+                time.sleep(0.4)
             result["videos"] = []
             for v in sorted(merged.values(), key=lambda x: int(x["id"]), reverse=True):
                 save_cover(v)
-                result["videos"].append({"id": v["id"], "title": v["title"], "views": v["views"]})
+                item = {"id": v["id"], "title": v["title"], "views": v["views"]}
+                if v.get("extra"):
+                    item["extra"] = True
+                result["videos"].append(item)
             changed = True
-            print(f"filmy: {len(videos)} z embedu, {len(result['videos'])} razem")
+            print(f"filmy: {len(videos)} z embedu, {len(extras)} z panelu, {len(result['videos'])} razem")
         else:
             warn("embed nie zwrocil zadnych filmow, zostawiam stare")
     except Exception as exc:  # noqa: BLE001

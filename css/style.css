@@ -388,6 +388,12 @@ a.tile-ig:hover .tile-arrow, a.tile-yt:hover .tile-arrow, .tile-discord:has(.til
 .latest-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 @media (min-width: 820px) { .latest-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }
 
+/* ---------- Strona 404 ---------- */
+.nf { min-height: 100dvh; display: grid; align-content: center; justify-items: start; gap: 20px; padding: 24px var(--gutter); max-width: var(--wrap); margin-inline: auto; }
+.nf-code { font: 900 clamp(120px, 30vw, 300px)/.85 var(--font-display); }
+.nf-title { font: 900 clamp(44px, 8vw, 92px)/.9 var(--font-display); text-transform: uppercase; }
+.nf-text { max-width: 44ch; color: var(--muted); font-size: 19px; }
+
 /* ---------- Strona streamera (tsxnine.pl) ---------- */
 .partner { padding-top: 0; padding-bottom: clamp(64px, 9vw, 120px); }
 .partner-link {

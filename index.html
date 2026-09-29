@@ -22,6 +22,29 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://tymonekk.github.io/">
+  <link rel="manifest" href="site.webmanifest">
+
+  <!-- Dane strukturalne: mowia Google, kim jest autor strony i gdzie ma inne konta -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "mainEntity": {
+      "@type": "Person",
+      "name": "369_shoter",
+      "alternateName": "369 shoter",
+      "url": "https://tymonekk.github.io/",
+      "image": "https://tymonekk.github.io/assets/avatar.webp",
+      "description": "Klipy z CS2 i najlepsze akcje.",
+      "sameAs": [
+        "https://www.tiktok.com/@369_shoter",
+        "https://www.instagram.com/369_shoter/",
+        "https://www.youtube.com/@369_shoter"
+      ]
+    }
+  }
+  </script>
 
   <link rel="preload" href="assets/fonts/bsd-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -202,7 +225,7 @@
         <span class="brand-name"><span class="hl">369</span>_shoter</span>
       </div>
       <ul class="footer-links" id="footer-links"></ul>
-      <p class="footer-note">&copy; <span id="year">2026</span> 369_shoter. <span id="updated"></span></p>
+      <p class="footer-note">&copy; <span id="year">2026</span> 369_shoter. <span id="updated"></span> <span id="privacy"></span></p>
     </div>
   </footer>
 
@@ -222,6 +245,7 @@
 
   <script src="js/config.js?v=dev"></script>
   <script src="data/tiktok.js?v=dev"></script>
+  <script src="data/admin.js?v=dev"></script>
   <script src="js/main.js?v=dev"></script>
 </body>
 </html>

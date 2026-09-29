@@ -4,11 +4,74 @@
 (() => {
   "use strict";
 
-  const C = window.SITE_CONFIG || {};
   const D = window.TIKTOK_DATA || {};
   const $ = (sel, root = document) => root.querySelector(sel);
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const isExternal = (url) => /^https?:\/\//i.test(url);
+
+  /* ---------- Ustawienia z panelu admina (data/admin.js) ----------
+     Panel zapisuje tylko wybrane pola. Kazde jest tu sprawdzane: tylko znane klucze, ograniczona dlugosc,
+     adresy wylacznie https. Cokolwiek innego jest ignorowane, wiec zly wpis nie popsuje strony. */
+  const check = {
+    str: (v, max) => (typeof v === "string" ? v.trim().slice(0, max) : undefined),
+    url: (v) => {
+      if (typeof v !== "string") return undefined;
+      if (!v.trim()) return "";
+      try { const u = new URL(v.trim()); return u.protocol === "https:" ? u.href : undefined; } catch (_) { return undefined; }
+    },
+    int: (v, min, max) => (Number.isInteger(v) && v >= min && v <= max ? v : undefined),
+    id: (v) => (typeof v === "string" && /^\d{15,25}$/.test(v) ? v : undefined),
+  };
+
+  function withOverrides(base, o) {
+    if (!o || typeof o !== "object") return base;
+    const out = { ...base };
+    const gc = o.analytics && check.str(o.analytics.goatcounter, 40);
+    if (typeof gc === "string") out.analytics = { ...(base.analytics || {}), goatcounter: gc };
+    if (o.discord && typeof o.discord === "object") {
+      const d = { ...(base.discord || {}) };
+      const name = check.str(o.discord.username, 40);
+      if (name !== undefined) d.username = name;
+      const invite = check.url(o.discord.invite);
+      if (invite !== undefined) d.invite = invite;
+      out.discord = d;
+    }
+    const email = check.str(o.email, 120);
+    if (email !== undefined && (email === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) out.email = email;
+    if (o.partner && typeof o.partner === "object") {
+      const p = { ...(base.partner || {}) };
+      for (const k of ["label", "name", "note"]) {
+        const s = check.str(o.partner[k], 200);
+        if (s !== undefined) p[k] = s;
+      }
+      const url = check.url(o.partner.url);
+      if (url !== undefined) p.url = url;
+      if (o.partner.enabled === false) p.url = "";
+      out.partner = p;
+    }
+    if (o.videoMode === "player" || o.videoMode === "tiktok") out.videoMode = o.videoMode;
+    const top = check.int(o.topCount, 1, 12);
+    if (top !== undefined) out.topCount = top;
+    const latest = check.int(o.latestCount, 1, 12);
+    if (latest !== undefined) out.latestCount = latest;
+    if (Array.isArray(o.videos)) {
+      const extra = [];
+      for (const v of o.videos.slice(0, 60)) {
+        const id = v && check.id(v.id);
+        if (!id) continue;
+        const item = { id };
+        const title = check.str(v.title, 120);
+        if (title) item.title = title;
+        if (Number.isInteger(v.views) && v.views > 0 && v.views < 1e10) item.views = v.views;
+        extra.push(item);
+      }
+      out.videos = [...(base.videos || []), ...extra];
+    }
+    if (Array.isArray(o.hidden)) out.hidden = o.hidden.slice(0, 200).map(check.id).filter(Boolean);
+    return out;
+  }
+
+  const C = withOverrides(window.SITE_CONFIG || {}, window.SITE_OVERRIDES);
 
   /* Skrocone liczby: 3749 -> "3,7K", 237800 -> "237K". Zawsze w dol, zeby liczba pozostawala prawdziwa. */
   function short(n) {
@@ -126,6 +189,7 @@
     // tytul z config.js ma pierwszenstwo, liczba wyswietlen: wieksza z dwoch (rosna tylko w gore)
     pool.set(v.id, { ...known, ...v, views: Math.max(known.views || 0, v.views || 0) || undefined });
   });
+  (C.hidden || []).forEach((id) => pool.delete(id)); // filmy ukryte w panelu admina
   const allVideos = [...pool.values()];
   const topVideos = allVideos
     .slice()
@@ -140,7 +204,7 @@
     const title = v.title || "Film";
     const img = el("img", { src: v.cover || "assets/covers/" + v.id + ".webp", alt: "", width: "360", height: "640", loading: "lazy" });
     img.addEventListener("error", () => img.remove(), { once: true });
-    const media = el("button", { class: "vcard-media", type: "button", "aria-label": "Odtwórz film: " + title }, [
+    const media = el("button", { class: "vcard-media", type: "button", "aria-label": "Odtwórz film: " + title, "data-id": v.id, "data-title": title }, [
       img,
       el("span", { class: "play" }, [icon("play")]),
     ]);
@@ -402,4 +466,48 @@
   } else {
     revealables.forEach((n) => n.classList.add("in"));
   }
+
+  /* ---------- Statystyki odwiedzin: GoatCounter (anonimowe, bez ciasteczek) ----------
+     Wlaczane kodem z config.js albo z panelu admina. Skrypt liczy wejscia, a kliknieciami sterujemy
+     atrybutami data-goatcounter-click, ktore tu dopisujemy (nazwy widac potem w panelu GoatCounter). */
+  (function analytics() {
+    const code = C.analytics && C.analytics.goatcounter;
+    if (typeof code !== "string" || !/^[a-z0-9-]{2,40}$/.test(code)) return;
+
+    const mark = (sel, name, title) => document.querySelectorAll(sel).forEach((n) => {
+      n.setAttribute("data-goatcounter-click", "klik/" + name);
+      n.setAttribute("data-goatcounter-title", title);
+    });
+    mark(".header-socials [data-link=tiktok]", "tiktok-naglowek", "TikTok (nagłówek)");
+    mark(".header-socials [data-link=instagram]", "instagram-naglowek", "Instagram (nagłówek)");
+    mark(".header-socials [data-link=youtube]", "youtube-naglowek", "YouTube (nagłówek)");
+    mark(".header-socials [data-link=discord]", "discord-naglowek", "Discord (nagłówek)");
+    mark(".hero-cta [data-link=tiktok]", "tiktok-hero", "TikTok (przycisk na górze)");
+    mark(".tile-tiktok", "tiktok-kafelek", "TikTok (kafelek)");
+    mark(".tile-ig", "instagram-kafelek", "Instagram (kafelek)");
+    mark(".tile-yt", "youtube-kafelek", "YouTube (kafelek)");
+    mark("#discord-copy", "discord-kopiuj-nick", "Discord (skopiowanie nicku)");
+    mark("#discord-hit", "discord-zaproszenie", "Discord (zaproszenie na serwer)");
+    mark("#partner-link", "partner", "Strona streamera (blok na dole)");
+    mark(".vcard-more", "tiktok-wszystkie-filmy", "TikTok (Wszystkie filmy)");
+    mark("#player-link, #player-fallback-link", "film-otworz-tiktok", "Film otwarty na TikToku");
+    document.querySelectorAll("#footer-links a").forEach((a) => {
+      const slug = a.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "link";
+      a.setAttribute("data-goatcounter-click", "klik/stopka-" + slug);
+      a.setAttribute("data-goatcounter-title", "Stopka: " + a.textContent.trim());
+    });
+    document.querySelectorAll(".vcard-media").forEach((b) => {
+      b.setAttribute("data-goatcounter-click", "film/" + b.dataset.id);
+      b.setAttribute("data-goatcounter-title", "Film: " + (b.dataset.title || b.dataset.id));
+    });
+
+    const s = document.createElement("script");
+    s.async = true;
+    s.src = "https://gc.zgo.at/count.js";
+    s.dataset.goatcounter = "https://" + code + ".goatcounter.com/count";
+    document.head.append(s);
+
+    const note = $("#privacy");
+    if (note) note.textContent = "Odwiedziny liczy GoatCounter (anonimowo, bez ciasteczek).";
+  })();
 })();
