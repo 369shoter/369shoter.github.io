@@ -35,7 +35,7 @@ window.SITE_CONFIG = {
   // 1. Załóż konto na https://www.goatcounter.com/signup i wybierz nazwę, np. "369shoter".
   // 2. Wpisz ją tutaj (albo w panelu admina). Puste "" = statystyki wyłączone.
   analytics: {
-    goatcounter: ""
+    goatcounter: "369shoter"
   },
 
   // Adres e-mail do współpracy. Zostaw puste "", jeśli nie chcesz go pokazywać.

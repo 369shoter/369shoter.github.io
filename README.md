@@ -51,12 +51,12 @@ uwzględniać w rankingu.
 
 Strona potrafi liczyć odwiedziny i kliknięcia (TikTok, Instagram, YouTube, Discord, poszczególne
 filmy, blok z tsxnine.pl) przez GoatCounter: darmowe, anonimowe, bez ciasteczek, więc nie potrzeba
-banera zgód. Domyślnie jest wyłączone.
+banera zgód. Jest włączone dla konta `369shoter` (`analytics.goatcounter` w `js/config.js`, można je
+też zmienić w panelu admina; puste pole wyłącza statystyki).
 
-1. Załóż konto na https://www.goatcounter.com/signup i wybierz nazwę, np. `369shoter`.
-2. Wpisz ją w panelu admina (pole „Nazwa konta GoatCounter”) albo w `analytics.goatcounter` w `js/config.js`.
-3. Wyniki oglądasz na `https://TWOJA-NAZWA.goatcounter.com`. Kliknięcia są w zakładce
-   z „Events”/ścieżkami zaczynającymi się od `klik/` i `film/`.
+Wyniki oglądasz na https://369shoter.goatcounter.com. Kliknięcia to ścieżki zaczynające się od
+`klik/` (linki i przyciski) oraz `film/` (poszczególne filmy). Część osób z blokerem reklam nie
+zostanie policzona, więc liczby są zaniżone.
 
 ## Widoczność w Google
 
