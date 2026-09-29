@@ -1,0 +1,10 @@
+# Tylko dla wdrozenia z linii polecen (patrz README.md w tym folderze). Przy wdrozeniu z panelu Cloudflare
+# ten plik nie jest potrzebny. Sekrety (ADMIN_PASSWORD, SESSION_SECRET, TOTP_SECRET, GITHUB_TOKEN) ustawia sie
+# komenda `wrangler secret put`, nigdy w tym pliku.
+name = "369-panel"
+main = "admin-api.js"
+compatibility_date = "2025-01-01"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "WKLEJ_ID_PRZESTRZENI_KV"

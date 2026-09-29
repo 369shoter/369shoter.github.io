@@ -78,31 +78,34 @@ Adres: `https://tymonekk.github.io/admin/`. Pozwala zmienić bez grzebania w kod
 nick i zaproszenie na Discorda, e-mail, blok z tsxnine.pl, tryb otwierania filmów, liczbę filmów,
 dodać starsze filmy (samym linkiem) i ukryć wybrane filmy. Zapis publikuje stronę w 1-2 minuty.
 
-**Jak jest zabezpieczony.** Strona statyczna nie może mieć bezpiecznego własnego logowania (hasło
-sprawdzane w przeglądarce widziałby każdy). Dlatego panel **nie ma własnego hasła ani serwera**:
-loguje się tokenem GitHub i zapisuje zmiany przez oficjalne API GitHuba, które samo sprawdza uprawnienia.
-Bez Twojego tokenu nic nie zmienisz, nawet znając adres.
+Ustawienia z panelu trafiają do `data/admin.js`, a to, co panel zmienia, ma pierwszeństwo przed
+`js/config.js`. Pole nietknięte w panelu nadal pochodzi z `config.js`.
 
-- Token żyje tylko w pamięci karty, wychodzi wyłącznie do `api.github.com` i po 10 minutach
-  bezczynności jest kasowany. Opcja „Zapamiętaj” trzyma go do zamknięcia karty (domyślnie wyłączona).
+**Dwa tryby logowania** (wybiera go stała `WORKER_URL` na początku `admin/admin.js`):
+
+1. **Hasło + kod 2FA (zalecane).** Strona statyczna nie może sama bezpiecznie sprawdzić hasła, więc
+   sprawdza je darmowy Worker w Cloudflare (`worker/admin-api.js`). Token GitHub leży wtedy tylko w sekretach
+   Cloudflare, nie w przeglądarce. Wejście wymaga hasła i kodu z aplikacji na telefonie, są limity błędnych
+   prób, sesja trwa 20 minut, a serwer jeszcze raz waliduje każdy zapis. Instalacja krok po kroku:
+   [`worker/README.md`](worker/README.md). Sekrety (hasło, klucz sesji, klucz 2FA) wygenerujesz na
+   `https://tymonekk.github.io/admin/setup.html` (działa lokalnie w przeglądarce, niczego nie wysyła).
+2. **Token GitHub** (gdy `WORKER_URL` jest puste). Panel loguje się fine-grained tokenem (tylko to
+   repozytorium, tylko *Contents: Read and write*, ważność np. 30 dni) i zapisuje przez API GitHuba, które samo
+   sprawdza uprawnienia. Token żyje tylko w pamięci karty, wychodzi wyłącznie do `api.github.com`
+   i po 10 minutach bezczynności jest kasowany. Utworzysz go na
+   https://github.com/settings/personal-access-tokens/new . Włącz też 2FA na koncie GitHub.
+
+Wspólne zabezpieczenia obu trybów:
+
 - Ścisła polityka CSP: tylko własne skrypty, żadnych obcych bibliotek, żadnego `innerHTML`.
 - Panel nie da się wyświetlić w ramce (ochrona przed podszywaniem się) i ma `noindex`.
 - Strona publiczna nie ufa zapisanym ustawieniom: przyjmuje tylko znane pola, ogranicza długości
   i akceptuje wyłącznie adresy `https` (wpisy typu `javascript:` są ignorowane).
 
-**Jak się zalogować (jednorazowo).** Utwórz token na
-https://github.com/settings/personal-access-tokens/new : *Only select repositories* -> tylko
-`tymonekk.github.io`, uprawnienie *Contents: Read and write* (nic więcej), ważność krótka
-(np. 30 dni). Włącz też dwuskładnikowe logowanie na koncie GitHub. Zgubiony token unieważnisz na
-https://github.com/settings/personal-access-tokens.
-
-Ustawienia z panelu trafiają do `data/admin.js`, a to, co panel zmienia, ma pierwszeństwo przed
-`js/config.js`. Pole nietknięte w panelu nadal pochodzi z `config.js`.
-
-**Uczciwe ograniczenie:** token ma prawo zapisu do całego repozytorium, więc jego kradzież pozwalałaby
-zmienić kod strony (zmiany widać w historii i cofnie się je jednym kliknięciem). Dlatego krótka ważność,
-brak zapisywania w przeglądarce i 2FA. Mocniejsza wersja to osobne repozytorium wyłącznie na dane
-panelu (wtedy token nie ma dostępu do kodu strony), ale to więcej pracy i zależności.
+**Uczciwe ograniczenie:** token GitHub (w obu trybach) ma prawo zapisu do całego repozytorium, więc jego
+kradzież pozwalałaby zmienić kod strony (zmiany widać w historii i cofnie się je jednym kliknięciem).
+W trybie z hasłem token jest schowany za hasłem i 2FA w Cloudflare, w trybie tokenu ma go przeglądarka,
+dlatego krótka ważność i brak zapisywania. Mocniejsza wersja to osobne repozytorium wyłącznie na dane panelu.
 
 ## Animacje i ustawienie systemu „ogranicz ruch”
 
@@ -154,7 +157,8 @@ js/config.js                     Twoje dane (linki, liczba filmów, starsze film
 js/main.js                       działanie (odtwarzacz, karuzela, kopiowanie nicku)
 data/tiktok.js                   dane z TikToka (generowane automatycznie)
 data/admin.js                    ustawienia zapisane przez panel admina
-admin/                           panel admina (index.html, admin.js, admin.css)
+admin/                           panel admina (index.html, admin.js, admin.css) i generator sekretów (setup.html)
+worker/                          serwer hasła dla panelu w Cloudflare (admin-api.js) i instrukcja
 scripts/update_tiktok.py         pobieranie danych z TikToka (także dla filmów dodanych w panelu)
 .github/workflows/pages.yml      publikacja i codzienne odświeżanie
 robots.txt, sitemap.xml, site.webmanifest, 404.html   widoczność w Google, ikona, strona błędu

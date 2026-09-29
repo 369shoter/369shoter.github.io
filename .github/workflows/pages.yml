@@ -44,7 +44,7 @@ jobs:
           # plik weryfikacyjny Google Search Console (google1234abcd.html), jesli jest w repozytorium
           cp google*.html _site/ 2>/dev/null || true
           # numer wersji w adresach plikow (patrz komentarz w index.html)
-          sed -i "s/?v=dev/?v=$(date -u +%Y%m%d%H%M)/g" _site/index.html _site/404.html _site/admin/index.html
+          sed -i "s/?v=dev/?v=$(date -u +%Y%m%d%H%M)/g" _site/index.html _site/404.html _site/admin/index.html _site/admin/setup.html
           # data ostatniej zmiany w mapie strony
           sed -i "s/LASTMOD/$(date -u +%Y-%m-%d)/" _site/sitemap.xml
           grep -c '?v=2' _site/index.html

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Generator sekretów | 369_shoter</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <!-- Ta strona działa tylko lokalnie w przeglądarce: connect-src 'none' oznacza, że nie może niczego wysłać
+       w sieć. Nic nie zapisuje (ani w ciasteczkach, ani w localStorage). Znika razem z kartą. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <link rel="icon" type="image/png" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../css/style.css?v=dev">
+  <link rel="stylesheet" href="admin.css?v=dev">
+  <script src="setup.js?v=dev" defer></script>
+</head>
+<body>
+  <main class="adm">
+    <header class="adm-head">
+      <h1 class="adm-title">Sekrety</h1>
+    </header>
+
+    <section class="adm-card">
+      <h2 class="adm-h">Do czego to służy</h2>
+      <p class="adm-p">Generator tworzy trzy wartości potrzebne do ustawienia panelu z hasłem w Cloudflare: <b>hasło do panelu</b>, <b>klucz podpisu sesji</b> i <b>klucz 2FA</b> (kod z aplikacji na telefonie). Wszystko powstaje w Twojej przeglądarce z bezpiecznego generatora liczb losowych. Ta strona nie ma dostępu do sieci i niczego nie zapisuje, więc po zamknięciu karty wartości znikają. <b>Skopiuj je od razu</b> do menedżera haseł albo do Cloudflare.</p>
+      <p class="adm-p">Nie otwieraj tej strony na cudzym komputerze i nie rób zrzutów ekranu, które trafią do chmury.</p>
+      <button class="btn btn-primary" type="button" id="generate">Wygeneruj nowe sekrety</button>
+    </section>
+
+    <div id="result" hidden>
+      <section class="adm-card">
+        <h2 class="adm-h">1. Hasło do panelu</h2>
+        <p class="adm-p">Nazwa w Cloudflare: <code>ADMIN_PASSWORD</code>. To hasło wpisujesz przy logowaniu do panelu. Ma ok. 128 bitów losowości, więc nie da się go zgadnąć.</p>
+        <div class="adm-copy"><output class="adm-secret" id="out-password"></output><button class="btn btn-ghost btn-sm" type="button" data-copy="out-password">Kopiuj</button></div>
+      </section>
+
+      <section class="adm-card">
+        <h2 class="adm-h">2. Klucz podpisu sesji</h2>
+        <p class="adm-p">Nazwa w Cloudflare: <code>SESSION_SECRET</code>. Tego klucza nigdy nie wpisujesz nigdzie poza Cloudflare.</p>
+        <div class="adm-copy"><output class="adm-secret" id="out-session"></output><button class="btn btn-ghost btn-sm" type="button" data-copy="out-session">Kopiuj</button></div>
+      </section>
+
+      <section class="adm-card">
+        <h2 class="adm-h">3. Klucz 2FA (zalecane)</h2>
+        <p class="adm-p">Nazwa w Cloudflare: <code>TOTP_SECRET</code>. Dodaj go do aplikacji (Google Authenticator, Microsoft Authenticator, Authy, 2FAS): <b>Dodaj konto</b> → <b>Wpisz klucz konfiguracyjny</b>, typ „na podstawie czasu”, i wklej poniższy klucz. Dzięki temu samo hasło nie wystarczy do wejścia do panelu.</p>
+        <div class="adm-copy"><output class="adm-secret" id="out-totp"></output><button class="btn btn-ghost btn-sm" type="button" data-copy="out-totp">Kopiuj</button></div>
+        <p class="adm-p">Aplikacje na telefonie pozwalają też wkleić cały adres (niektóre przez „Importuj”):</p>
+        <div class="adm-copy"><output class="adm-secret adm-secret-small" id="out-uri"></output><button class="btn btn-ghost btn-sm" type="button" data-copy="out-uri">Kopiuj</button></div>
+
+        <h3 class="adm-h3">Sprawdź, czy klucz wpisałeś dobrze</h3>
+        <p class="adm-p">Wpisz aktualny 6-cyfrowy kod z aplikacji. Sprawdzenie odbywa się tutaj, w przeglądarce.</p>
+        <form class="adm-row adm-row-check" id="verify-form" autocomplete="off">
+          <input class="adm-input" id="verify-code" type="text" inputmode="numeric" pattern="[0-9 ]*" maxlength="7" placeholder="123456" aria-label="Kod z aplikacji">
+          <button class="btn btn-ghost btn-sm" type="submit">Sprawdź</button>
+        </form>
+        <p class="adm-p" id="verify-result" role="status"></p>
+      </section>
+
+      <section class="adm-card">
+        <h2 class="adm-h">Co dalej</h2>
+        <p class="adm-p">Wklej te trzy wartości jako sekrety Workera w Cloudflare (instrukcja w pliku <code>worker/README.md</code> w repozytorium) i dopiero wtedy zamknij kartę.</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

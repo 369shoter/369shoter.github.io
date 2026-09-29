@@ -40,3 +40,15 @@ html:not(.unframed) body { display: none; }
 
 .adm-error { padding: 12px 14px; border-radius: 14px; border: 1px solid #ff6a5f; color: #ff9d95; background: rgb(255 106 95 / .08); font-size: 15px; }
 .adm-save { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+
+/* Generator sekretow (setup.html) */
+.adm code { padding: 1px 6px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); font-size: .92em; }
+.adm-copy { display: flex; align-items: center; gap: 10px; }
+.adm-secret {
+  flex: 1; min-width: 0; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line-strong);
+  background: var(--bg); font: 600 17px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere; user-select: all;
+}
+.adm-secret-small { font-size: 13px; font-weight: 500; }
+.adm-row-check { grid-template-columns: 1fr auto; }
+.adm-mode { display: grid; gap: 12px; }
