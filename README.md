@@ -10,9 +10,11 @@ i bez kosztów.
 2. W polu **Build and deployment** -> **Source** wybierz **GitHub Actions**.
 3. Wejdź w zakładkę **Actions**, wybierz **Publikacja strony** i kliknij **Run workflow**
    (albo poczekaj: strona publikuje się też sama po każdej zmianie i codziennie rano).
-4. Po minucie strona jest pod adresem `https://tymonekk.github.io/369shoter/`.
+4. Po minucie strona jest pod adresem `https://tymonekk.github.io/`.
 
-Hosting i adres `github.io` są darmowe.
+Hosting i adres `github.io` są darmowe. Adres bez dopisku po ukośniku działa dlatego, że
+repozytorium nazywa się dokładnie `tymonekk.github.io`. Przy każdej innej nazwie strona
+byłaby pod `https://tymonekk.github.io/nazwa-repozytorium/`.
 
 ### Własny, ładniejszy adres
 
