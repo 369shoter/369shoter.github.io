@@ -2,12 +2,13 @@ name: Publikacja strony
 
 # Publikuje strone na GitHub Pages:
 #  - po kazdej zmianie w repozytorium,
-#  - codziennie rano (odswieza wtedy liczby i filmy z TikToka),
+#  - co 5 minut (odswieza wtedy liczby i filmy z TikToka; 5 minut to najczestszy
+#    odstep, jaki GitHub dopuszcza, a przy duzym ruchu na GitHubie bywa dluzej),
 #  - na zadanie (zakladka Actions -> Publikacja strony -> Run workflow).
 on:
   push:
   schedule:
-    - cron: "17 4 * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -65,7 +66,7 @@ jobs:
           path: _site
 
       # GitHub wylacza zaplanowane zadania po 60 dniach bez zmian w repozytorium.
-      # To wywolanie zeruje ten licznik, wiec codzienne odswiezanie nie zgasnie po cichu.
+      # To wywolanie zeruje ten licznik, wiec odswiezanie nie zgasnie po cichu.
       - name: Nie pozwol wylaczyc harmonogramu
         continue-on-error: true
         env:

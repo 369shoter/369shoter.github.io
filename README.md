@@ -9,7 +9,7 @@ i bez kosztów.
 1. Wejdź w repozytorium na GitHubie: **Settings** -> **Pages**.
 2. W polu **Build and deployment** -> **Source** wybierz **GitHub Actions**.
 3. Wejdź w zakładkę **Actions**, wybierz **Publikacja strony** i kliknij **Run workflow**
-   (albo poczekaj: strona publikuje się też sama po każdej zmianie i codziennie rano).
+   (albo poczekaj: strona publikuje się też sama po każdej zmianie i co kilka minut).
 4. Po minucie strona jest pod adresem `https://tymonekk.github.io/`.
 
 Hosting i adres `github.io` są darmowe. Adres bez dopisku po ukośniku działa dlatego, że
@@ -20,7 +20,7 @@ byłaby pod `https://tymonekk.github.io/nazwa-repozytorium/`.
 
 - **Za darmo:** podłącz to samo repozytorium do Cloudflare Pages albo Netlify
   i wybierz nazwę, np. `369shoter.pages.dev`. Katalog główny repozytorium to gotowa strona,
-  ale bez codziennego odświeżania danych (to robi workflow z GitHuba).
+  ale bez automatycznego odświeżania danych (to robi workflow z GitHuba).
 - **Własna domena** (np. `369shoter.pl`) kosztuje zwykle kilkadziesiąt zł rocznie.
   Wpiszesz ją w Settings -> Pages -> Custom domain.
 
@@ -29,7 +29,8 @@ w `index.html`, żeby podgląd linku (Discord, Messenger) działał.
 
 ## Automatyczne odświeżanie
 
-Codziennie rano (i przy każdej publikacji) GitHub sam:
+Co 5 minut (i przy każdej publikacji) GitHub sam. To najkrótszy odstęp, jaki GitHub
+dopuszcza w harmonogramie, a w godzinach dużego ruchu potrafi go wydłużyć do kilkunastu minut:
 
 - pobiera z publicznego profilu TikToka liczbę obserwujących i polubień,
 - pobiera listę ostatnich filmów razem z liczbą wyświetleń i okładkami,
@@ -195,7 +196,7 @@ data/admin.js                    ustawienia zapisane przez panel admina
 admin/                           panel admina (index.html, admin.js, admin.css) i generator sekretów (setup.html)
 worker/                          serwer hasła dla panelu w Cloudflare (admin-api.js) i instrukcja
 scripts/update_tiktok.py         pobieranie danych z TikToka (także dla filmów dodanych w panelu)
-.github/workflows/pages.yml      publikacja i codzienne odświeżanie
+.github/workflows/pages.yml      publikacja i odświeżanie danych (co 5 min)
 robots.txt, sitemap.xml, site.webmanifest, 404.html   widoczność w Google, ikona, strona błędu
 assets/                          awatar, okładki, czcionki, obraz podglądu linku
 ```
