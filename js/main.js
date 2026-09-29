@@ -188,7 +188,7 @@
   /* ---------- Filmy: laczymy liste z config.js z danymi z TikToka ---------- */
   const idDesc = (a, b) => (b.id.length - a.id.length) || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
   const pool = new Map();
-  (D.videos || []).forEach((v) => pool.set(v.id, { id: v.id, title: v.title, views: v.views }));
+  (D.videos || []).forEach((v) => pool.set(v.id, { id: v.id, title: v.title, views: v.views, lqip: v.lqip }));
   (C.videos || []).forEach((v) => {
     const known = pool.get(v.id) || {};
     // tytul z config.js ma pierwszenstwo, liczba wyswietlen: wieksza z dwoch (rosna tylko w gore)
@@ -209,10 +209,16 @@
     const title = v.title || "Film";
     const img = el("img", { src: v.cover || "assets/covers/" + v.id + ".webp", alt: "", width: "360", height: "640", loading: "lazy" });
     img.addEventListener("error", () => img.remove(), { once: true });
+    const done = () => img.classList.add("is-loaded");
+    if (img.complete && img.naturalWidth) done(); else img.addEventListener("load", done, { once: true });
     const media = el("button", { class: "vcard-media", type: "button", "aria-label": "Odtwórz film: " + title, "data-id": v.id, "data-title": title }, [
       img,
       el("span", { class: "play" }, [icon("play")]),
     ]);
+    // rozmyty podglad (mikro-miniatura): tylko poprawny obraz webp w data: URI, ktory sami wygenerowalismy
+    if (typeof v.lqip === "string" && v.lqip.length < 2500 && /^data:image\/webp;base64,[A-Za-z0-9+\/=]+$/.test(v.lqip)) {
+      media.style.setProperty("--lqip", 'url("' + v.lqip + '")');
+    }
     media.addEventListener("click", () => openPlayer(v, list));
     return el("article", { class: "vcard" }, [
       media,
@@ -641,6 +647,74 @@
       e.preventDefault();
       scrollToY(y);
       try { history.replaceState(null, "", id === "top" ? location.pathname + location.search : "#" + id); } catch (_) { /* np. strona otwarta z pliku */ }
+    });
+  })();
+
+  /* ---------- Karuzela filmow na telefonie w stylu "coverflow" ----------
+     Dla kazdej karty liczymy odleglosc od srodka karuzeli (p: 0 = w srodku, +-1 = jedna karta obok) i zapisujemy
+     zmienne CSS (--p, --s, --o). Reszte (skala, przygaszenie, przesuniecie okladki) robi CSS. Tylko wasne ekrany. */
+  (function coverflow() {
+    const strip = $("#track");
+    if (!strip) return;
+    const mq = window.matchMedia("(max-width: 819px)");
+    const cards = () => [...strip.querySelectorAll(".vcard")];
+    let queued = false;
+    function update() {
+      queued = false;
+      if (!mq.matches) return;
+      const tr = strip.getBoundingClientRect();
+      const mid = tr.left + tr.width / 2;
+      cards().forEach((c) => {
+        const r = c.getBoundingClientRect();
+        const p = Math.max(-1.6, Math.min(1.6, (r.left + r.width / 2 - mid) / r.width));
+        const d = Math.min(1, Math.abs(p));
+        c.style.setProperty("--p", p.toFixed(3));
+        c.style.setProperty("--s", (1 - 0.13 * d).toFixed(3));
+        c.style.setProperty("--o", (1 - 0.45 * d).toFixed(3));
+      });
+    }
+    const queue = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
+    function apply() {
+      if (mq.matches) { strip.setAttribute("data-flow", ""); queue(); return; }
+      strip.removeAttribute("data-flow");
+      cards().forEach((c) => ["--p", "--s", "--o"].forEach((k) => c.style.removeProperty(k)));
+    }
+    strip.addEventListener("scroll", queue, { passive: true });
+    window.addEventListener("resize", queue);
+    if (mq.addEventListener) mq.addEventListener("change", apply); else if (mq.addListener) mq.addListener(apply);
+    apply();
+  })();
+
+  /* ---------- Efekt stuniecia: zielona fala i hitmarker w miejscu klikniecia ----------
+     Wlasna warstwa nad strona (pointer-events: none), wiec niczego nie zaslania. Na dotyku dodatkowo krotka wibracja
+     (Android). Nie pojawia sie w oknie odtwarzacza. Reaguje na klikniecie, wiec przeciaganie karuzeli go nie wywoluje. */
+  (function tapFx() {
+    const layer = el("div", { class: "fx", "aria-hidden": "true" });
+    document.body.append(layer);
+    const NS = "http://www.w3.org/2000/svg";
+    function hitmarker() {
+      const svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("class", "fx-hit");
+      svg.setAttribute("viewBox", "-20 -20 40 40");
+      const path = document.createElementNS(NS, "path");
+      path.setAttribute("d", "M-13 -13L-5 -5M13 -13L5 -5M-13 13L-5 5M13 13L5 5");
+      path.setAttribute("stroke", "currentColor");
+      path.setAttribute("stroke-width", "3.2");
+      path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("fill", "none");
+      svg.append(path);
+      return svg;
+    }
+    document.addEventListener("click", (e) => {
+      const t = e.target.closest && e.target.closest("a, button, .vcard-media, .tile");
+      if (!t || t.disabled || t.closest("dialog")) return;
+      let x = e.clientX, y = e.clientY;
+      if (!x && !y) { const r = t.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top + r.height / 2; } // klawiatura
+      const nodes = [el("span", { class: "fx-ring" }), hitmarker()];
+      nodes.forEach((n) => { n.style.left = x + "px"; n.style.top = y + "px"; layer.append(n); });
+      while (layer.children.length > 8) layer.firstChild.remove();
+      setTimeout(() => nodes.forEach((n) => n.remove()), 700);
+      if (e.pointerType === "touch" && navigator.vibrate) { try { navigator.vibrate(8); } catch (_) { /* brak zgody */ } }
     });
   })();
 

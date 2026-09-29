@@ -13,6 +13,7 @@ zostaje poprzedni plik data/tiktok.js, a skrypt kończy się kodem 0.
 Uruchomienie lokalnie:  python scripts/update_tiktok.py
 """
 import datetime
+import base64
 import io
 import json
 import os
@@ -133,6 +134,22 @@ def save_cover(video):
         return False
 
 
+def make_lqip(video_id):
+    """Mikro-miniatura okladki (18x32, ok. 200-300 B) jako data: URI. Strona pokazuje ja rozmyta, zanim zaladuje sie prawdziwa okladka."""
+    target = COVERS / f"{video_id}.webp"
+    if not target.exists():
+        return None
+    try:
+        from PIL import Image
+        img = Image.open(target).convert("RGB").resize((18, 32), Image.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, "WEBP", quality=35, method=6)
+        return "data:image/webp;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+    except Exception as exc:  # noqa: BLE001 - miniatura jest dodatkiem
+        print(f"  miniatura {video_id} nie powstala: {exc}")
+        return None
+
+
 ADMIN_FILE = ROOT / "data" / "admin.js"
 
 
@@ -218,6 +235,9 @@ def main():
             for v in sorted(merged.values(), key=lambda x: int(x["id"]), reverse=True):
                 save_cover(v)
                 item = {"id": v["id"], "title": v["title"], "views": v["views"]}
+                lqip = make_lqip(v["id"])
+                if lqip:
+                    item["lqip"] = lqip
                 if v.get("extra"):
                     item["extra"] = True
                 result["videos"].append(item)

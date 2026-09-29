@@ -131,6 +131,18 @@ Strona jest zawsze ciemna, niezależnie od ustawień telefonu.
 
 Menu, przyciski ze strzałką i logo (wraca na samą górę, w nagłówku i w stopce) przewijają stronę płynną animacją. Jest własna (`smoothAnchors` w `js/main.js`), więc działa też przy włączonym w systemie „ogranicz ruch”, kiedy natywne przewijanie bywa wyłączone. Zatrzymuje się, gdy sam zaczniesz przewijać.
 
+## Efekty wizualne i jak je usunąć
+
+Każdy efekt jest osobnym kawałkiem kodu, więc jeśli któryś Ci się nie spodoba, usuwasz tylko jego:
+
+| Efekt | Co usunąć |
+| --- | --- |
+| Karuzela filmów w stylu „coverflow” (telefon) | funkcja `coverflow` w `js/main.js` i blok „Telefon: karta przyciąga się do środka” w `css/style.css` |
+| Tło w klimacie CS2 (siatka, celownik, ziarno, dryfująca poświata) | sekcja „Tło w klimacie CS2” w `css/style.css` oraz `assets/grain.png` |
+| Fala i hitmarker po stuknięciu (i wibracja na Androidzie) | funkcja `tapFx` w `js/main.js` i style `.fx*` w `css/style.css` |
+| Obracający się zielony blask wokół bloku z tsxnine.pl | reguły `.partner-link::after` i `@property --ring` w `css/style.css` |
+| Rozmyty podgląd okładek przed załadowaniem | reguły `.vcard-media::before` i `.vcard-media img` (opacity) w `css/style.css`; skrypt `scripts/update_tiktok.py` może dalej zapisywać `lqip` w danych, nic to nie psuje |
+
 ## Animacje i ustawienie systemu „ogranicz ruch”
 
 Animacje (wejście strony, wjazd sekcji, karty filmów, liczby, kafelki, pasek postępu)
