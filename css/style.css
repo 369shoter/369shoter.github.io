@@ -339,7 +339,8 @@ a.tile:active { transform: scale(.985); }
 
 .tile-ig, .tile-yt { background: var(--bg-elev); } /* zapas dla przegladarek bez color-mix */
 .tile-ig { background: radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--text) 9%, transparent), transparent 60%), var(--bg-elev); }
-.tile-yt { background: radial-gradient(90% 120% at 0% 100%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 62%), var(--bg-elev); }
+/* YouTube: zwykly ciemny kafelek (zielona poswiata w rogu byla stala, a nie od kursora, i wygladala jak blad) */
+.tile-yt { background: var(--bg-elev); }
 .tile-discord { background: linear-gradient(165deg, var(--bg-elev-2), var(--bg-elev) 70%); }
 @media (hover: hover) { a.tile-ig:hover .tile-arrow, a.tile-yt:hover .tile-arrow, .tile-discord:has(.tile-hit:hover) .tile-arrow { background: var(--accent); color: var(--on-accent); border-color: var(--accent); } }
 
