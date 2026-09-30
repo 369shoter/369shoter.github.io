@@ -863,8 +863,13 @@
         const el = document.getElementById(id);
         if (!el) return;
         const headerH = parseFloat(getComputedStyle(root).getPropertyValue("--header-h")) || 64;
-        // sekcje maja duzy odstep u gory: ladujemy na ich tresci, nie na pustym miejscu
-        y = el.getBoundingClientRect().top + window.scrollY + (parseFloat(getComputedStyle(el).paddingTop) || 0) - headerH - 20;
+        // Sekcje maja duzy odstep u gory: ladujemy na ich tresci, nie na pustym miejscu. Mniejsze elementy (np. kafelek Discorda) maja wlasny,
+        // wewnetrzny odstep, wiec tam ladujemy na samej gorze elementu. Elementy wjezdzajace przy przewijaniu sa jeszcze przesuniete w dol
+        // (translate), wiec odejmujemy to przesuniecie: liczymy miejsce, w ktorym element bedzie po skonczeniu wjazdu.
+        const cs = getComputedStyle(el);
+        const slide = cs.translate && cs.translate !== "none" ? parseFloat(cs.translate.split(" ")[1]) || 0 : 0;
+        const pad = el.tagName === "SECTION" ? parseFloat(cs.paddingTop) || 0 : 0;
+        y = el.getBoundingClientRect().top - slide + window.scrollY + pad - headerH - 20;
       }
       e.preventDefault();
       scrollToY(y);
