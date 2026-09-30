@@ -109,6 +109,26 @@ Bez tego sekretu panel działa jak dotąd, a karta pokazuje tylko instrukcję. T
 pozwala wyłącznie czytać liczby odwiedzin, nie zmienia niczego w GoatCounterze. Wejścia z komputera, na którym
 używasz panelu, też się liczą (GoatCounter pomija tylko localhost i boty).
 
+### 9. Dane z TikToka na żywo (bez żadnych ustawień)
+
+Ten sam Worker oddaje stronie publiczny adres `/live` (np. `https://369-panel.twoja-nazwa.workers.dev/live`).
+Strona pyta o niego przy każdym wejściu i dzięki temu nowy klip, jego opis i liczby wyświetleń widać od razu,
+bez czekania na publikację z GitHuba. **Nie potrzeba do tego żadnych sekretów ani ustawień**, wystarczy wkleić
+aktualny `admin-api.js` i kliknąć **Deploy**.
+
+- Worker czyta publiczny embed profilu na TikToku i oddaje z niego tylko liczby, tytuły, wyświetlenia i adresy okładek.
+  Odpowiedź jest trzymana 60 sekund, więc TikTok dostaje najwyżej jedno zapytanie na minutę z jednego centrum danych,
+  bez względu na liczbę odwiedzin. Po nieudanym pobraniu Worker czeka 20 sekund, zanim spróbuje ponownie.
+- Strona czeka na tę odpowiedź najwyżej 1,6 s (w tym czasie i tak trwa ekran wczytywania). Jeśli Worker nie
+  odpowie, TikTok zablokuje zapytanie albo odpowiedź będzie dziwna, strona po prostu pokazuje dane z ostatniej
+  publikacji. Nic się nie psuje.
+- Sprawdzisz to w przeglądarce: otwórz Konsolę na swojej stronie i wpisz
+  `fetch("https://TWOJ-WORKER.workers.dev/live").then(r => r.json()).then(console.log)`.
+  Powinieneś zobaczyć `ok: true`, liczbę obserwujących i listę filmów.
+- Wyłączenie: w `js/config.js` ustaw `liveApi: ""`.
+- Nowy klip (jeszcze bez własnej okładki w repozytorium) pokazuje okładkę prosto z serwerów TikToka.
+  Po najbliższej publikacji okładka trafia do strony na stałe.
+
 ## Zmiana hasła, wylogowanie wszystkich
 
 - **Nowe hasło**: zmień sekret `ADMIN_PASSWORD` w Cloudflare (i **Deploy**). Działa od razu.
@@ -132,6 +152,9 @@ używasz panelu, też się liczą (GoatCounter pomija tylko localhost i boty).
   jest taka, że ktoś złośliwy może na godzinę zablokować panel. Strona publiczna działa dalej.
 - Sekrety w Cloudflare są tylko do zapisu. Po zapisaniu nikt (także Ty) ich nie odczyta w panelu
   Cloudflare, więc trzymaj kopię w menedżerze haseł.
+
+- **`/live` zależy od tego, czy TikTok wpuści zapytania z serwerów Cloudflare.** Zwykle tak, ale nie ma
+  gwarancji. Gdy nie wpuści, strona działa jak wcześniej (dane z ostatniej publikacji).
 
 ## Testy
 

@@ -5,6 +5,9 @@
    nie trafia do przegladarki. Zapis przechodzi ostra walidacje: przez ten Worker da sie zmienic wylacznie znane
    ustawienia strony, nie kod.
 
+   Osobno (i bez hasla, bo to same publiczne dane) Worker oddaje stronie swieze liczby i liste filmow z TikToka pod /live:
+   patrz "Dane z TikToka na zywo" nizej. Nie wymaga zadnych sekretow.
+
    Sekrety (Cloudflare -> Worker -> Settings -> Variables and Secrets), wszystkie typu "Secret":
      ADMIN_PASSWORD  haslo do panelu (min. 5 znakow)
      SESSION_SECRET  losowy ciag do podpisywania sesji (min. 32 znaki), wygenerujesz go na /admin/setup.html
@@ -339,6 +342,118 @@ async function handleStats(request, env) {
   }
 }
 
+/* ---------- Dane z TikToka na zywo (GET /live, publiczne, bez logowania) ----------
+   Strona pyta o to przy kazdym wejsciu, dzieki czemu nowy klip, opis i liczby widac od razu, bez czekania na publikacje.
+   Worker czyta ten sam publiczny embed profilu co scripts/update_tiktok.py i oddaje z niego tylko to, co potrzebne stronie.
+   Odpowiedz jest trzymana LIVE_TTL_S sekund (w pamieci Workera i w cache Cloudflare), wiec TikTok dostaje co najwyzej
+   jedno zapytanie na minute z jednego centrum danych, niezaleznie od liczby odwiedzin. Adres jest staly, nic z zewnatrz
+   nie trafia do zapytania. Gdy TikTok nie odpowie, strona zostaje przy danych z ostatniej publikacji. */
+const TT_EMBED = "https://www.tiktok.com/embed/@369_shoter";
+const TT_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+const LIVE_TTL_S = 60;
+const LIVE_FAIL_TTL_S = 20;                 // po nieudanym pobraniu chwile odczekujemy, zeby nie zasypywac TikToka
+const LIVE_CACHE_KEY = "https://live.internal/369shoter/tiktok";
+const LIVE_MAX_VIDEOS = 30;
+const CDN_HOST = /(^|\.)tiktokcdn(-[a-z]+)?\.com$/;
+
+let liveMem = null; // { until, ok, body }: pamiec podreczna tej instancji Workera
+
+/* Tak samo jak clean_title() w scripts/update_tiktok.py: bez #hasztagow, bez zbednych spacji, KRZYCZENIE -> zwykle zdanie. */
+function liveTitle(desc) {
+  let t = String(desc == null ? "" : desc).replace(/#[\p{L}\p{N}_]+/gu, "").replace(/\s+/g, " ").trim();
+  const letters = [...t].filter((c) => c.toLowerCase() !== c.toUpperCase());
+  if (letters.length && letters.filter((c) => c === c.toUpperCase()).length / letters.length > 0.7) {
+    t = t.toLowerCase();
+    t = t.charAt(0).toUpperCase() + t.slice(1);
+  }
+  return cleanText(t, 120) || "Film";
+}
+
+function coverUrl(v) {
+  const u = typeof v.originCoverUrl === "string" && v.originCoverUrl ? v.originCoverUrl : v.coverUrl;
+  try {
+    const p = new URL(u);
+    return p.protocol === "https:" && CDN_HOST.test(p.hostname) ? p.href : "";
+  } catch (_) { return ""; }
+}
+
+function parseLive(html) {
+  const m = html.match(/<script id="__FRONTITY_CONNECT_STATE__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!m) throw new Error("brak-danych");
+  const state = JSON.parse(m[1]);
+
+  let stats = null;
+  const found = new Map();
+  const stack = [state];
+  for (let n = 0; stack.length && n < 200000; n++) {
+    const node = stack.pop();
+    if (Array.isArray(node)) { for (const x of node) stack.push(x); continue; }
+    if (!isObj(node)) continue;
+    if (!stats && Number.isInteger(node.followerCount) && node.followerCount > 0) {
+      const likes = node.heartCount != null ? node.heartCount : node.heart;
+      stats = { followers: node.followerCount, likes: Number.isInteger(likes) && likes >= 0 ? likes : 0 };
+    }
+    if ("playCount" in node && "id" in node && node.privateItem !== true) {
+      const id = String(node.id);
+      if (ID_RE.test(id)) {
+        const views = Number(node.playCount);
+        found.set(id, { id, title: liveTitle(node.desc), views: Number.isFinite(views) && views >= 0 ? Math.round(views) : 0, cover: coverUrl(node) });
+      }
+    }
+    for (const k in node) if (isObj(node[k]) || Array.isArray(node[k])) stack.push(node[k]);
+  }
+  const videos = [...found.values()].sort((a, b) => (b.id.length - a.id.length) || (a.id < b.id ? 1 : -1)).slice(0, LIVE_MAX_VIDEOS);
+  if (!stats && !videos.length) throw new Error("pusto");
+  return { ok: true, at: Date.now(), stats, videos };
+}
+
+async function fetchLive(env) {
+  const r = await fetch(env.TIKTOK_EMBED_URL || TT_EMBED, {
+    headers: { "user-agent": TT_UA, "accept-language": "pl,en;q=0.8", accept: "text/html" },
+    signal: AbortSignal.timeout(6000),
+  });
+  if (!r.ok) throw new Error("tiktok-" + r.status);
+  const html = await r.text();
+  if (html.length > 5e6) throw new Error("za-duze");
+  return parseLive(html);
+}
+
+async function handleLive(env, ctx) {
+  const now = Date.now();
+  let entry = liveMem && liveMem.until > now ? liveMem : null;
+  let source = "memory";
+
+  const cache = typeof caches !== "undefined" ? caches.default : null;
+  const key = new Request(LIVE_CACHE_KEY);
+  if (!entry && cache) {
+    try {
+      const hit = await cache.match(key);
+      if (hit) {
+        const j = await hit.json();
+        entry = { until: now + 5000, ok: j.ok === true, body: j }; // z cache Cloudflare: krotko trzymamy tez w pamieci
+        source = "cache";
+      }
+    } catch (_) { /* cache jest dodatkiem */ }
+  }
+
+  if (!entry) {
+    source = "fresh";
+    let ok = true;
+    let body;
+    try { body = await fetchLive(env); } catch (_) { ok = false; body = { ok: false }; }
+    const ttl = ok ? LIVE_TTL_S : LIVE_FAIL_TTL_S;
+    entry = { until: now + ttl * 1000, ok, body };
+    liveMem = entry;
+    if (cache) {
+      const put = cache.put(key, new Response(JSON.stringify(body), {
+        headers: { "content-type": "application/json", "cache-control": "public, max-age=" + ttl },
+      })).catch(() => {});
+      if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(put); else await put;
+    }
+  }
+  return reply(env, entry.body, entry.ok ? 200 : 502, { "x-live-source": source });
+}
+
 /* ---------- start i konfiguracja ---------- */
 function configError(env) {
   const missing = ["ADMIN_PASSWORD", "SESSION_SECRET", "GITHUB_TOKEN"].filter((k) => !env[k]);
@@ -416,10 +531,13 @@ async function handleOverrides(request, env) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: baseHeaders(env) });
     if (request.headers.get("origin") !== allowedOrigin(env)) return reply(env, { error: "Zabronione." }, 403);
+
+    // publiczne dane z TikToka: nie wymagaja hasla ani zadnych sekretow
+    if (url.pathname === "/live" && request.method === "GET") return handleLive(env, ctx);
 
     const err = configError(env);
     if (err) return reply(env, { error: err }, 500);

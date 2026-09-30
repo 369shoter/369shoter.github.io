@@ -1,10 +1,10 @@
 /* 369_shoter - logika strony. Teksty i dane zmieniasz w js/config.js, nie tutaj.
    Dane z TikToka (liczby, lista filmow) odswieza automatycznie scripts/update_tiktok.py
    i trafiaja do data/tiktok.js. */
-(() => {
+(async () => {
   "use strict";
 
-  const D = window.TIKTOK_DATA || {};
+  const STATIC_DATA = window.TIKTOK_DATA || {}; // dane z ostatniej publikacji; swiezsze (na zywo) dokladamy nizej jako D
   const $ = (sel, root = document) => root.querySelector(sel);
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const isExternal = (url) => /^https?:\/\//i.test(url);
@@ -72,6 +72,68 @@
   }
 
   const C = withOverrides(window.SITE_CONFIG || {}, window.SITE_OVERRIDES);
+
+  /* ---------- Dane z TikToka na zywo ----------
+     Strona pyta Workera (C.liveApi, patrz worker/) o swieze liczby, opisy i liste filmow, dzieki czemu nowy klip widac od razu,
+     a nie dopiero po kolejnej publikacji. Pytanie startuje od razu, a czekamy na nie dopiero tuz przed budowaniem list
+     (max LIVE_WAIT_MS, w tym czasie i tak trwa ekran wczytywania). Cokolwiek pojdzie nie tak (Worker pada, TikTok blokuje, brak
+     internetu, dziwna odpowiedz), strona po prostu zostaje przy danych z ostatniej publikacji. liveApi: "" wylacza cala funkcje. */
+  const LIVE_WAIT_MS = 1600;
+
+  function cleanLive(j) {
+    if (!j || j.ok !== true) return null;
+    const out = { stats: null, videos: [] };
+    const s = j.stats;
+    if (s && Number.isInteger(s.followers) && s.followers > 0 && s.followers < 1e9) {
+      out.stats = { followers: s.followers, likes: Number.isInteger(s.likes) && s.likes >= 0 && s.likes < 1e12 ? s.likes : 0 };
+    }
+    for (const v of (Array.isArray(j.videos) ? j.videos : []).slice(0, 40)) {
+      const id = v && check.id(v.id);
+      if (!id) continue;
+      const item = { id };
+      const title = check.str(v.title, 120);
+      if (title) item.title = title;
+      if (Number.isInteger(v.views) && v.views >= 0 && v.views < 1e10) item.views = v.views;
+      const cover = check.url(v.cover);
+      if (cover && /(^|\.)tiktokcdn(-[a-z]+)?\.com$/.test(new URL(cover).hostname)) item.cover = cover;
+      out.videos.push(item);
+    }
+    return out.stats || out.videos.length ? out : null;
+  }
+
+  async function loadLive(url) {
+    if (typeof url !== "string" || !url) return null;
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), LIVE_WAIT_MS);
+    try {
+      const r = await fetch(url, { cache: "no-store", credentials: "omit", signal: ctl.signal });
+      return r.ok ? cleanLive(await r.json()) : null;
+    } catch (_) {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /* Laczy dane z ostatniej publikacji ze swiezymi: liczby i tytuly/wyswietlenia znanych filmow sie aktualizuja,
+     nowe filmy dochodza (z okladka prosto z TikToka, bo lokalnej jeszcze nie ma). */
+  function mergeLive(base, fresh) {
+    if (!fresh) return base;
+    const out = { ...base };
+    if (fresh.stats) out.stats = { ...(base.stats || {}), ...fresh.stats };
+    const byId = new Map((base.videos || []).map((v) => [v.id, v]));
+    for (const f of fresh.videos) {
+      const known = byId.get(f.id);
+      if (!known) { byId.set(f.id, f); continue; }
+      byId.set(f.id, { ...known, ...(f.title ? { title: f.title } : {}), ...(f.views ? { views: f.views } : {}) });
+    }
+    out.videos = [...byId.values()];
+    const now = new Date();
+    out.updated = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+    return out;
+  }
+
+  const freshPromise = loadLive(C.liveApi);
 
   /* Skrocone liczby: 3749 -> "3,7K", 237800 -> "237K". Zawsze w dol, zeby liczba pozostawala prawdziwa. */
   function short(n) {
@@ -186,9 +248,10 @@
   })();
 
   /* ---------- Filmy: laczymy liste z config.js z danymi z TikToka ---------- */
+  const D = mergeLive(STATIC_DATA, await freshPromise);
   const idDesc = (a, b) => (b.id.length - a.id.length) || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
   const pool = new Map();
-  (D.videos || []).forEach((v) => pool.set(v.id, { id: v.id, title: v.title, views: v.views, lqip: v.lqip }));
+  (D.videos || []).forEach((v) => pool.set(v.id, { id: v.id, title: v.title, views: v.views, lqip: v.lqip, cover: v.cover }));
   (C.videos || []).forEach((v) => {
     const known = pool.get(v.id) || {};
     // tytul z config.js ma pierwszenstwo, liczba wyswietlen: wieksza z dwoch (rosna tylko w gore)
@@ -207,7 +270,7 @@
 
   function videoCard(v, list) {
     const title = v.title || "Film";
-    const img = el("img", { src: v.cover || "assets/covers/" + v.id + ".webp", alt: "", width: "360", height: "640", loading: "lazy" });
+    const img = el("img", { src: v.cover || "assets/covers/" + v.id + ".webp", alt: "", width: "360", height: "640", loading: "lazy", referrerpolicy: v.cover ? "no-referrer" : undefined });
     img.addEventListener("error", () => img.remove(), { once: true });
     const done = () => img.classList.add("is-loaded");
     if (img.complete && img.naturalWidth) done(); else img.addEventListener("load", done, { once: true });
@@ -328,7 +391,10 @@
     shots.forEach((shot, i) => {
       const v = pick[i];
       const img = shot.querySelector("img");
-      if (img) img.src = v.cover || "assets/covers/" + v.id + ".webp";
+      if (img) {
+        if (v.cover) img.referrerPolicy = "no-referrer";
+        img.src = v.cover || "assets/covers/" + v.id + ".webp";
+      }
       shot.setAttribute("role", "button");
       shot.setAttribute("tabindex", "0");
       shot.setAttribute("aria-label", "Odtwórz film: " + (v.title || "Film"));

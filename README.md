@@ -29,16 +29,24 @@ w `index.html`, żeby podgląd linku (Discord, Messenger) działał.
 
 ## Automatyczne odświeżanie
 
-Co 5 minut (i przy każdej publikacji) GitHub sam. To najkrótszy odstęp, jaki GitHub
-dopuszcza w harmonogramie, a w godzinach dużego ruchu potrafi go wydłużyć do kilkunastu minut:
+Dane z TikToka (liczby, opisy, wyświetlenia, nowe klipy) trafiają na stronę dwiema drogami:
 
-- pobiera z publicznego profilu TikToka liczbę obserwujących i polubień,
-- pobiera listę ostatnich filmów razem z liczbą wyświetleń i okładkami,
-- składa stronę na nowo i ją publikuje.
+1. **Na żywo, przy każdym wejściu.** Strona pyta Workera z Cloudflare (`/live`, patrz `worker/README.md`),
+   a on czyta publiczny profil TikToka. Nowy klip i jego opis widać więc zwykle w ciągu kilku minut od wrzucenia (zależy od tego, jak szybko TikTok
+   odświeża swój publiczny profil), bez żadnej publikacji. Wymaga jednorazowo wklejenia aktualnego `worker/admin-api.js` do Workera. Gdy Worker
+   nie odpowie, strona używa danych z punktu 2.
+2. **Publikacja z GitHuba.** Przy każdej zmianie w repozytorium i według harmonogramu (co 5 minut, ale GitHub
+   trzyma się go luźno: w praktyce bywa co kilka godzin) GitHub sam:
+
+   - pobiera z publicznego profilu TikToka liczbę obserwujących i polubień,
+   - pobiera listę ostatnich filmów razem z liczbą wyświetleń i okładkami (okładki nowych filmów trafiają na stronę na stałe),
+   - składa stronę na nowo i ją publikuje.
+
+   Publikację możesz też uruchomić ręcznie: **Actions** -> **Publikacja strony** -> **Run workflow**.
 
 Dzięki temu liczby pod hero, lista **Najczęściej oglądane** (filmy z największą liczbą
 wyświetleń) i sekcja **Najnowsze filmy** aktualizują się bez Twojego udziału.
-Data ostatniego odświeżenia jest w stopce strony.
+Data w stopce to dzień ostatniego odświeżenia (przy danych na żywo: dzisiejszy).
 
 Jeśli TikTok kiedyś zablokuje pobieranie, nic się nie psuje: strona zostaje z ostatnimi
 znanymi danymi, a w zakładce Actions przy przebiegu pojawia się żółte ostrzeżenie.

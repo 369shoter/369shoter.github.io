@@ -54,13 +54,18 @@ window.SITE_CONFIG = {
   extraLinks: [],
 
   // Liczby pod hero. Strona sama je skróci (3749 -> 3,7K+) i zaokrągla w dół.
-  // "source" mówi, skąd brać świeżą wartość: dane z TikToka odświeżają się same raz dziennie
+  // "source" mówi, skąd brać świeżą wartość: dane z TikToka odświeżają się same
   // (patrz README). "value" to zapas, gdyby danych z TikToka akurat nie było.
   stats: [
     { source: "followers", value: 3749,   label: "obserwujących na TikToku" },
     { source: "likes",     value: 132722, label: "polubień pod filmami" },
     { source: "bestVideo", value: 237800, label: "wyświetleń najlepszego filmu" }
   ],
+
+  // Świeże dane z TikToka przy każdym wejściu na stronę: nowy klip, opis i liczby widać od razu, bez czekania
+  // na publikację. To adres Workera z Cloudflare (tego samego co panel admina) plus /live.
+  // Puste "" wyłącza tę funkcję: strona pokazuje wtedy dane z ostatniej publikacji (patrz README).
+  liveApi: "https://369-panel.369shoter.workers.dev/live",
 
   // Co się dzieje po kliknięciu w film: "player" otwiera go w oknie na tej stronie,
   // "tiktok" od razu przenosi na TikToka (w nowej karcie, na telefonie zwykle do aplikacji).
