@@ -270,11 +270,12 @@ ul { padding: 0; list-style: none; }
   background: linear-gradient(90deg, #3aa71a, var(--accent));
 }
 .milestone.in .milestone-fill { transform: scaleX(var(--p, 0)); transition: transform 1.9s cubic-bezier(.33, .9, .3, 1) .35s; }
-/* polysk, ktory przesuwa sie po wypelnieniu bez przerwy: wzor powtarza sie co szerokosc wypelnienia, wiec gdy jedno pasmo
-   znika z prawej strony, z lewej wjezdza nastepne (petla bez szwu i bez chwili bez ruchu). Tylko gdy pasek jest na ekranie. */
+/* Polysk: jedna jasna smuga jedzie od lewej do prawej krawedzi wypelnienia. Nastepna wjezdza od lewej dopiero, gdy poprzednia
+   (jej wyrazna czesc) zniknie z prawej, wiec dwie smugi nigdy nie sa widoczne naraz, a przerwa jest niezauwazalna.
+   Wzor powtarza sie co 1,2 szerokosci wypelnienia (element ma 2 takie okresy = 240%; dobrane pomiarem: bez nakladania i bez zauwazalnej przerwy). Dziala tylko, gdy pasek jest na ekranie. */
 .milestone-fill::after {
-  content: ""; position: absolute; inset: 0 auto 0 0; width: 200%; translate: -50% 0;
-  background: linear-gradient(100deg, transparent 0, transparent 25%, rgb(255 255 255 / .4) 50%, transparent 75%, transparent 100%) 0 0 / 50% 100% repeat-x;
+  content: ""; position: absolute; inset: 0 auto 0 0; width: 240%; translate: -50% 0;
+  background: linear-gradient(100deg, transparent 0, transparent 36%, rgb(255 255 255 / .42) 50%, transparent 64%, transparent 100%) 0 0 / 50% 100% repeat-x;
 }
 .milestone.in.is-visible .milestone-fill::after { animation: milestone-shine 2.4s linear infinite; }
 @keyframes milestone-shine { to { translate: 0 0; } }
