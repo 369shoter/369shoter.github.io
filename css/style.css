@@ -466,8 +466,8 @@ a.tile:active { transform: scale(.985); }
 .partner { padding-top: 0; padding-bottom: clamp(64px, 9vw, 120px); }
 /* Ramka jak na tsxnine.pl: w 2-pikselowym pierscieniu (.partner-ring, maska) obraca sie duzy pasek z zielonym swiatlem
    (.partner-beam), wiec swiatlo przesuwa sie po ramce, po dwoch przeciwnych stronach naraz. Poswiata wokol swiatla to
-   filtr drop-shadow na .partner-fx (swieci tylko tam, gdzie akurat jest swiatlo). Obrot z rownym tempem na obwodzie ustawia
-   main.js (partnerBeam, tempo: TURN_MS); animacja ponizej to zapas bez JS. */
+   filtr drop-shadow na .partner-fx (swieci tylko tam, gdzie akurat jest swiatlo). Z JS pasek zastepuja dwa swiatla o stalej
+   dlugosci jadace po ramce ze stala predkoscia (main.js, partnerTrail, tempo: LAP_MS); obracajacy sie pasek to zapas bez JS. */
 .partner-link {
   position: relative; isolation: isolate; display: block;
   padding: clamp(24px, 4vw, 48px);
@@ -491,6 +491,9 @@ a.tile:active { transform: scale(.985); }
   animation: partner-beam 4s linear infinite;
 }
 @keyframes partner-beam { to { transform: rotate(360deg); } }
+/* swiatla jadace po ramce ze stala predkoscia (main.js, partnerTrail); zastepuja pasek .partner-beam */
+.partner-trail { position: absolute; inset: 0; width: 100%; height: 100%; }
+.partner-trail rect { fill: none; stroke: var(--accent); stroke-width: 4; }
 /* Po najechaniu: blok sie unosi, ramka zapala sie na zielono z poswiata pod spodem, napis TSXNINE.PL zalewa sie
    zielenia od lewej do prawej, a strzalka obraca sie w zielonym kolku. */
 .partner-link::after {
