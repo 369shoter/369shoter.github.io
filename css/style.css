@@ -522,6 +522,16 @@ a.tile:active { transform: scale(.985); }
   padding: 24px; text-align: center; background: rgb(0 0 0 / .84); font-size: 17px;
 }
 .player-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.player-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+#player-share.is-done { color: var(--accent-ink); border-color: var(--accent); }
+/* na waskim ekranie przycisk kopiowania to sama ikona (zeby pasek zostal w jednym rzedzie), a potwierdzenie pokazuje dymek na filmie */
+@media (max-width: 480px) { #player-share .share-label { display: none; } }
+.player-toast {
+  position: absolute; z-index: 2; left: 50%; top: 12px; translate: -50% 0; padding: 8px 14px; border-radius: var(--r-pill);
+  background: rgb(0 0 0 / .72); color: #fff; font: 600 14px/1 var(--font-body); white-space: nowrap; pointer-events: none;
+  opacity: 0; transition: opacity .25s;
+}
+.player-toast.is-on { opacity: 1; }
 /* Przewijanie filmow: licznik, wskazowka, blysk pauzy/play i warstwa gestow (patrz main.js) */
 .player-count {
   position: absolute; z-index: 1; top: 12px; left: 12px; padding: 6px 12px; border-radius: var(--r-pill);
@@ -559,7 +569,7 @@ a.tile:active { transform: scale(.985); }
 @media (orientation: landscape) and (max-height: 520px) {
   .player[open] { display: flex; align-items: center; gap: 12px; }
   .player-stage { width: auto; height: calc(100vh - 24px); height: calc(100dvh - 24px); }
-  .player-bar { flex-direction: column; margin-top: 0; }
+  .player-bar, .player-actions { flex-direction: column; margin-top: 0; }
 }
 
 /* ---------- Stopka ---------- */

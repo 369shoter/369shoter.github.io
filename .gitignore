@@ -2,3 +2,6 @@
 # cache Pythona (powstaje przy uruchomieniu scripts/update_tiktok.py)
 __pycache__/
 *.pyc
+
+# obrazy podgladu linkow klipow (powstaja przy publikacji, scripts/make_previews.py)
+assets/og/

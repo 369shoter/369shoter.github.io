@@ -125,6 +125,12 @@ aktualny `admin-api.js` i kliknąć **Deploy**.
 - Sprawdzisz to w przeglądarce: otwórz Konsolę na swojej stronie i wpisz
   `fetch("https://TWOJ-WORKER.workers.dev/live").then(r => r.json()).then(console.log)`.
   Powinieneś zobaczyć `ok: true`, liczbę obserwujących i listę filmów.
+- **Podgląd linku do klipu:** ten sam Worker oddaje publiczny adres `/k/NUMER_FILMU` (np. `https://TWOJ-WORKER.workers.dev/k/7691066909055388961`).
+  To strona z znacznikami `og:` (tytuł, wyświetlenia, obraz), z których korzystają Discord, Messenger i podobne. Człowieka od razu
+  przenosi na `https://tymonekk.github.io/?film=NUMER`. Przycisk **Kopiuj link** w odtwarzaczu kopiuje właśnie ten adres. Obraz bierze ze strony
+  (`assets/og/NUMER.jpg`, robi go `scripts/make_previews.py`), a gdy go jeszcze nie ma, okładkę z TikToka. Adres jest publiczny, ale nie robi nic
+  poza odczytem publicznych danych, a liczba zapytań do TikToka jest ograniczona (20 na minutę, wyniki w pamięci na 10 minut). Możesz go sprawdzić
+  wklejając link klipu w rozmowie na Discordzie (Discord czasem trzyma stary podgląd kilka minut).
 - Wyłączenie: w `js/config.js` ustaw `liveApi: ""`.
 - Przy okazji Worker zapisuje w KV (to samo powiązanie `KV` co przy logowaniu) **historię liczby obserwujących**: punkt
   (czas, obserwujący, polubienia) przy wejściu na stronę, najwyżej co 3 godziny, ostatnie 900 punktów (ok. 100 dni).

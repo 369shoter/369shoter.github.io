@@ -7,7 +7,8 @@
 
    Osobno (i bez hasla, bo to same publiczne dane) Worker oddaje stronie swieze liczby i liste filmow z TikToka pod /live:
    patrz "Dane z TikToka na zywo" nizej. Nie wymaga zadnych sekretow. Przy okazji zapisuje w KV historie liczby obserwujacych
-   (co najmniej 3 godziny odstepu), ktora panel pokazuje jako wykres (GET /history, za haslem).
+   (co najmniej 3 godziny odstepu), ktora panel pokazuje jako wykres (GET /history, za haslem). Publiczny GET /k/<numer filmu>
+   oddaje strone z podgladem konkretnego klipu (okladka i tytul na Discordzie itp.) i przenosi na strone z otwartym filmem.
 
    Sekrety (Cloudflare -> Worker -> Settings -> Variables and Secrets), wszystkie typu "Secret":
      ADMIN_PASSWORD  haslo do panelu (min. 5 znakow)
@@ -451,7 +452,8 @@ async function handleHistory(env) {
   return reply(env, { points: histPoints(raw).map(([t, followers, likes]) => ({ t, followers, likes })) });
 }
 
-async function handleLive(env, ctx) {
+/* Dane z TikToka z cache (pamiec -> cache Cloudflare -> swiezy odczyt). Uzywa tego /live i podglady klipow (/k/ID). */
+async function getLiveEntry(env, ctx) {
   const now = Date.now();
   let entry = liveMem && liveMem.until > now ? liveMem : null;
   let source = "memory";
@@ -488,7 +490,113 @@ async function handleLive(env, ctx) {
       if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(put); else await put;
     }
   }
+  return { entry, source };
+}
+
+async function handleLive(env, ctx) {
+  const { entry, source } = await getLiveEntry(env, ctx);
   return reply(env, entry.body, entry.ok ? 200 : 502, { "x-live-source": source });
+}
+
+/* ---------- Podglad linku do konkretnego klipu (GET /k/<numer filmu>, publiczne) ----------
+   Link https://TWOJ-WORKER.workers.dev/k/NUMER wklejony na Discordzie, w Messengerze itp. pokazuje okladke i tytul TEGO klipu
+   (roboty tych serwisow czytaja znaczniki og: z tej strony), a czlowiek jest od razu przenoszony na strone z otwartym filmem
+   (ORIGIN/?film=NUMER). Dane: lista z /live, a dla starszych filmow oEmbed TikToka. Obraz: assets/og/NUMER.jpg ze strony
+   (1200x630, robi go scripts/make_previews.py przy publikacji), a gdy go jeszcze nie ma, okladka prosto z TikToka. */
+const PREVIEW_ID = /^\/k\/(\d{15,25})\/?$/;
+const PREVIEW_TTL_MS = 10 * 60e3;
+const PREVIEW_CACHE_MAX = 200;
+const OEMBED_PER_MIN = 20;                  // tyle roznych filmow spoza listy /live sprawdzamy na minute (ochrona przed zasypywaniem TikToka)
+const previewMem = new Map();               // numer -> { until, data }
+let oembedWindow = { start: 0, n: 0 };
+
+const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function shortViews(n) {
+  if (n >= 1e6) return (Math.floor(n / 1e5) / 10).toString().replace(".", ",") + "M";
+  if (n >= 1e5) return Math.floor(n / 1e3) + "K";
+  if (n >= 1e3) return (Math.floor(n / 100) / 10).toString().replace(".", ",") + "K";
+  return String(n);
+}
+
+async function previewData(env, ctx, id) {
+  const now = Date.now();
+  const hit = previewMem.get(id);
+  if (hit && hit.until > now) return hit.data;
+
+  let data = { title: "", views: 0, cover: "" };
+  const { entry } = await getLiveEntry(env, ctx);
+  const known = entry.ok && Array.isArray(entry.body.videos) ? entry.body.videos.find((v) => v.id === id) : null;
+  if (known) {
+    data = { title: known.title, views: known.views, cover: known.cover };
+  } else {
+    // starszy film spoza listy: tytul i okladka z oEmbed (z limitem zapytan na minute)
+    if (now - oembedWindow.start > 60e3) oembedWindow = { start: now, n: 0 };
+    if (oembedWindow.n < OEMBED_PER_MIN) {
+      oembedWindow.n++;
+      try {
+        const r = await fetch((env.TIKTOK_OEMBED_URL || "https://www.tiktok.com/oembed") + "?url=" + encodeURIComponent("https://www.tiktok.com/@_/video/" + id), {
+          headers: { "user-agent": TT_UA }, signal: AbortSignal.timeout(4000),
+        });
+        if (r.ok) {
+          const j = await r.json();
+          let cover = "";
+          try { const u = new URL(j.thumbnail_url); if (u.protocol === "https:" && CDN_HOST.test(u.hostname)) cover = u.href; } catch (_) { /* brak okladki */ }
+          data = { title: liveTitle(j.title), views: 0, cover };
+        }
+      } catch (_) { /* zostaje ogolny podglad */ }
+    }
+  }
+
+  // wlasny obraz 1200x630 ze strony, jesli juz jest (nowy film dostaje go przy najblizszej publikacji)
+  const own = allowedOrigin(env) + "/assets/og/" + id + ".jpg";
+  let image = "", wide = false;
+  try {
+    const head = await fetch(own, { method: "HEAD", signal: AbortSignal.timeout(2500) });
+    if (head.ok) { image = own; wide = true; }
+  } catch (_) { /* sprobujemy okladki */ }
+  if (!image) image = data.cover || allowedOrigin(env) + "/assets/og.jpg";
+  if (image === allowedOrigin(env) + "/assets/og.jpg") wide = true;
+
+  data = { ...data, image, wide };
+  if (previewMem.size >= PREVIEW_CACHE_MAX) previewMem.delete(previewMem.keys().next().value);
+  previewMem.set(id, { until: now + PREVIEW_TTL_MS, data });
+  return data;
+}
+
+async function handlePreview(request, env, ctx, id) {
+  const site = allowedOrigin(env);
+  const target = site + "/?film=" + id;
+  const self = new URL(request.url).origin + "/k/" + id;
+  const d = await previewData(env, ctx, id);
+  const title = d.title || "Klip z CS2";
+  const desc = "Klip z CS2 od 369_shoter" + (d.views ? " · " + shortViews(d.views) + " wyświetleń" : "");
+  const html = `<!doctype html>
+<html lang="pl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(title)} | 369_shoter</title>
+<meta name="robots" content="noindex">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="369_shoter">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:url" content="${esc(self)}">
+<meta property="og:image" content="${esc(d.image)}">${d.wide ? '\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">' : ""}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(d.image)}">
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+</head><body><p><a href="${esc(target)}">${esc(title)}: otwórz klip na stronie 369_shoter</a></p></body></html>`;
+  return new Response(request.method === "HEAD" ? null : html, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "public, max-age=300",
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "no-referrer",
+      "content-security-policy": "default-src 'none'; img-src https:; frame-ancestors 'none'",
+    },
+  });
 }
 
 /* ---------- start i konfiguracja ---------- */
@@ -571,6 +679,10 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: baseHeaders(env) });
+    // podglad linku do klipu: czyta go robot Discorda/Messengera i przegladarka bez naglowka Origin, wiec przed sprawdzeniem originu
+    const pm = PREVIEW_ID.exec(url.pathname);
+    if (pm && (request.method === "GET" || request.method === "HEAD")) return handlePreview(request, env, ctx, pm[1]);
+
     if (request.headers.get("origin") !== allowedOrigin(env)) return reply(env, { error: "Zabronione." }, 403);
 
     // publiczne dane z TikToka: nie wymagaja hasla ani zadnych sekretow

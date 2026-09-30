@@ -465,6 +465,8 @@
   const stage = $("#player-stage");
   const frame = $("#player-frame");
   const dlgLink = $("#player-link");
+  const shareBtn = $("#player-share");
+  const shareLabel = $("#player-share-label");
   const fallback = $("#player-fallback");
   const fallbackLink = $("#player-fallback-link");
   const swipe = $("#player-swipe");
@@ -522,6 +524,7 @@
     stage.classList.remove("is-ready");
     setFallback(false);
     dlgLink.href = fallbackLink.href = videoUrl(v.id);
+    resetShare();
     frame.src = playerUrl(v.id);
     updateNav();
     // okladki sasiednich filmow: przejscie bez pustego tla
@@ -539,6 +542,33 @@
     dlg.showModal();
     document.documentElement.classList.add("modal-open");
     showHintOnce();
+  }
+
+  /* Kopiowanie linku do filmu. Gdy jest Worker (liveApi), to jego adres /k/NUMER: wklejony na Discordzie pokazuje okladke i tytul
+     tego filmu, a klikniety przenosi na strone z otwartym filmem. Bez Workera kopiujemy zwykly adres strony z ?film=NUMER. */
+  const shareBase = typeof C.liveApi === "string" ? C.liveApi.replace(/\/live\/?$/, "") : "";
+  const shareUrl = (id) => (shareBase ? shareBase + "/k/" + id : location.origin + location.pathname + "?film=" + id);
+  let shareTimer = 0;
+  const toastEl = $("#player-toast");
+  function resetShare() {
+    clearTimeout(shareTimer);
+    if (!shareBtn) return;
+    shareLabel.textContent = "Kopiuj link";
+    shareBtn.classList.remove("is-done");
+    toastEl.classList.remove("is-on");
+  }
+  if (shareBtn) {
+    shareBtn.addEventListener("click", async () => {
+      const v = playlist[index];
+      if (!v) return;
+      const done = await copyText(shareUrl(v.id));
+      shareLabel.textContent = done ? "Skopiowano" : "Nie udało się";
+      shareBtn.classList.toggle("is-done", done);
+      toastEl.textContent = done ? "Link skopiowany" : "Nie udało się skopiować";
+      toastEl.classList.add("is-on");
+      clearTimeout(shareTimer);
+      shareTimer = setTimeout(resetShare, 2200);
+    });
   }
 
   /* Wskazowka "Przesun w gore": raz na przegladarke, tylko na dotyku, tylko gdy jest co przewijac */
@@ -955,6 +985,7 @@
     mark("#partner-link", "partner", "Strona streamera (blok na dole)");
     mark(".vcard-more", "tiktok-wszystkie-filmy", "TikTok (Wszystkie filmy)");
     mark("#player-link, #player-fallback-link", "film-otworz-tiktok", "Film otwarty na TikToku");
+    mark("#player-share", "film-kopiuj-link", "Film: skopiowanie linku");
     document.querySelectorAll("#footer-links a").forEach((a) => {
       const slug = a.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "link";
       a.setAttribute("data-goatcounter-click", "klik/stopka-" + slug);
@@ -974,5 +1005,32 @@
   })();
 
   // Skrypt doszedl do konca: mozna zostawic ukrywanie sekcji przed animacja wjazdu (patrz index.html)
+  /* Link do filmu: adres strony z ?film=NUMER (tak przenosi podglad z Workera) od razu otwiera ten film w odtwarzaczu.
+     Czeka na koniec ekranu wczytywania, zeby okno nie pojawilo sie nad nim. Filmy ukryte w panelu admina sie nie otwieraja.
+     W trybie videoMode "tiktok" przenosi od razu na TikToka. */
+  (function openFromLink() {
+    let id = "";
+    try { id = new URLSearchParams(location.search).get("film") || ""; } catch (_) { return; }
+    if (!/^\d{15,25}$/.test(id) || (C.hidden || []).includes(id)) return;
+    if (C.videoMode === "tiktok") { location.replace(videoUrl(id)); return; }
+    const known = pool.get(id);
+    const v = known || { id, title: "Film" };
+    const list = allVideos.slice().sort(idDesc);
+    if (!known) list.unshift(v);
+    const open = () => {
+      openPlayer(v, list);
+      // po zamknieciu odtwarzacza adres wraca do zwyklego (bez ?film=), zeby odswiezenie nie otwieralo filmu ponownie
+      dlg.addEventListener("close", () => { try { history.replaceState(null, "", location.pathname + location.hash); } catch (_) { /* nic */ } }, { once: true });
+    };
+    const root = document.documentElement;
+    if (!root.classList.contains("intro-on")) { open(); return; }
+    const mo = new MutationObserver(() => {
+      if (root.classList.contains("intro-on")) return;
+      mo.disconnect();
+      open();
+    });
+    mo.observe(root, { attributes: true, attributeFilter: ["class"] });
+  })();
+
   window.__app = true;
 })();

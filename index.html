@@ -292,6 +292,7 @@
     <div class="player-stage" id="player-stage">
       <iframe id="player-frame" title="Film z TikToka" allow="autoplay; fullscreen; encrypted-media" referrerpolicy="strict-origin-when-cross-origin"></iframe>
       <div class="player-count" id="player-count" role="status" hidden></div>
+      <div class="player-toast" id="player-toast" role="status"></div>
       <div class="player-hint" id="player-hint" aria-hidden="true"><svg class="icon"><use href="#i-caret-right"/></svg>Przesuń w górę: następny film</div>
       <div class="player-flash" id="player-flash" aria-hidden="true"><svg class="icon"><use id="player-flash-icon" href="#i-play"/></svg></div>
       <!-- Warstwa gestow tylko na dotyku: przesuniecie = kolejny film, stuniecie = pauza/play. Dolny pasek odtwarzacza zostaje wolny. -->
@@ -306,7 +307,10 @@
       <button class="icon-btn icon-btn-lg" id="player-next" type="button" aria-label="Następny film"><svg class="icon"><use href="#i-caret-right"/></svg></button>
     </div>
     <div class="player-bar">
-      <a class="btn btn-ghost btn-sm" id="player-link" href="#" target="_blank" rel="noopener">Otwórz w TikToku<svg class="icon"><use href="#i-arrow-up-right"/></svg></a>
+      <div class="player-actions">
+        <a class="btn btn-ghost btn-sm" id="player-link" href="#" target="_blank" rel="noopener">Otwórz w TikToku<svg class="icon"><use href="#i-arrow-up-right"/></svg></a>
+        <button class="btn btn-ghost btn-sm" id="player-share" type="button" aria-label="Kopiuj link do filmu"><svg class="icon"><use href="#i-copy"/></svg><span class="share-label" id="player-share-label">Kopiuj link</span></button>
+      </div>
       <button class="icon-btn icon-btn-lg" id="player-close" type="button" aria-label="Zamknij odtwarzacz"><svg class="icon"><use href="#i-x"/></svg></button>
     </div>
   </dialog>

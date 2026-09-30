@@ -48,6 +48,8 @@ jobs:
         run: |
           pip install --quiet pillow
           python scripts/update_tiktok.py
+          # obrazy podgladu linkow do klipow (assets/og/), patrz worker/README.md; gdy sie nie uda, strona i tak sie publikuje
+          python scripts/make_previews.py || echo "::warning::Nie udalo sie zrobic obrazow podgladu klipow"
 
       - name: Zloz strone
         run: |
