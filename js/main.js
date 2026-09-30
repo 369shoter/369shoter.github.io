@@ -762,13 +762,18 @@
     const glow = el("span", { class: "partner-glow", "aria-hidden": "true" }, [el("span", { class: "partner-run-soft" })]);
     link.prepend(glow, ring);
     const dot = ring.firstElementChild, soft = glow.firstElementChild;
-    const LAP = 7; // sekund na okrazenie
-    let w = 0, h = 0, r = 19, perimeter = 1, offset = 0, last = 0, raf = 0, visible = true;
+    // Wielkosc swiatla i jego tempo rosna z rozmiarem bloku: na telefonie (maly blok) k = 1, na komputerze swiatlo jest wieksze
+    // i przesuwa sie szybciej w px/s, dzieki czemu wyglada tak samo jak na telefonie, a nie jak mala kropka gonaca po duzej ramce.
+    // SPEED to predkosc na telefonie (ok. jedno okrazenie na 7 s) w px/s.
+    const SPEED = 157;
+    let w = 0, h = 0, r = 19, perimeter = 1, k = 1, offset = 0, last = 0, raf = 0, visible = true;
 
     function measure() {
       w = link.clientWidth; h = link.clientHeight;
       r = Math.min(19, w / 2, h / 2);
       perimeter = 2 * (w - 2 * r) + 2 * (h - 2 * r) + 2 * Math.PI * r;
+      k = Math.max(1, Math.min(1.9, Math.sqrt(perimeter / 1080)));
+      link.style.setProperty("--glow-k", k.toFixed(3));
     }
     // punkt na obwodzie (0 = lewy gorny koniec prostego odcinka gornego, dalej zgodnie z ruchem wskazowek)
     function pointAt(s) {
@@ -785,14 +790,14 @@
     }
     function render() {
       const [x, y] = pointAt(((offset % perimeter) + perimeter) % perimeter);
-      dot.style.transform = "translate(" + (x - 90).toFixed(1) + "px," + (y - 90).toFixed(1) + "px)";
-      soft.style.transform = "translate(" + (x - 170).toFixed(1) + "px," + (y - 170).toFixed(1) + "px)";
+      dot.style.transform = "translate(" + (x - 90 * k).toFixed(1) + "px," + (y - 90 * k).toFixed(1) + "px)";
+      soft.style.transform = "translate(" + (x - 170 * k).toFixed(1) + "px," + (y - 170 * k).toFixed(1) + "px)";
     }
     function frame(now) {
       raf = 0;
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
       last = now;
-      offset += (perimeter / LAP) * dt;
+      offset += SPEED * k * dt;
       render();
       if (visible && !document.hidden) raf = requestAnimationFrame(frame);
     }

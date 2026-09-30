@@ -484,14 +484,14 @@ a.tile:active { transform: scale(.985); }
 /* Zielone swiatlo biegnace wokol ramki (main.js, partnerGlow): pozycje liczy JS, tu wyglad.
    Pierscien to maska 2 px z jasnym punktem, obok miekka poswiata wewnatrz bloku. */
 .partner-ring {
-  position: absolute; inset: 0; z-index: 1; padding: 3px; border-radius: inherit; pointer-events: none; transition: opacity .3s;
+  position: absolute; inset: 0; z-index: 1; padding: calc(2.4px + .6px * var(--glow-k, 1)); border-radius: inherit; pointer-events: none; transition: opacity .3s;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
 }
-.partner-run { position: absolute; left: 0; top: 0; width: 180px; height: 180px; border-radius: 50%; will-change: transform;
+.partner-run { position: absolute; left: 0; top: 0; width: calc(180px * var(--glow-k, 1)); height: calc(180px * var(--glow-k, 1)); border-radius: 50%; will-change: transform;
   background: radial-gradient(closest-side, #d6ffc4 0%, #b8ff9e 12%, var(--accent) 42%, rgb(87 224 44 / 0) 100%); }
 .partner-glow { position: absolute; inset: 0; z-index: -1; overflow: hidden; border-radius: inherit; pointer-events: none; transition: opacity .3s; }
-.partner-run-soft { position: absolute; left: 0; top: 0; width: 340px; height: 340px; border-radius: 50%; will-change: transform;
+.partner-run-soft { position: absolute; left: 0; top: 0; width: calc(340px * var(--glow-k, 1)); height: calc(340px * var(--glow-k, 1)); border-radius: 50%; will-change: transform;
   background: radial-gradient(closest-side, rgb(87 224 44 / .28), rgb(87 224 44 / 0)); }
 @media (hover: hover) { .partner-link:hover .partner-ring, .partner-link:hover .partner-glow { opacity: 0; } }
 .partner-label { display: block; margin-bottom: 8px; font-size: 17px; font-weight: 500; color: var(--muted); transition: color .3s; }
