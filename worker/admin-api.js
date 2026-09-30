@@ -406,7 +406,7 @@ function parseLive(html) {
   }
   const videos = [...found.values()].sort((a, b) => (b.id.length - a.id.length) || (a.id < b.id ? 1 : -1)).slice(0, LIVE_MAX_VIDEOS);
   if (!stats && !videos.length) throw new Error("pusto");
-  return { ok: true, at: Date.now(), stats, videos };
+  return { ok: true, at: Date.now(), previews: true, stats, videos }; // previews: ten Worker umie tez /k/NUMER (strona kopiuje wtedy ten adres)
 }
 
 async function fetchLive(env) {

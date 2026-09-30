@@ -82,7 +82,7 @@
 
   function cleanLive(j) {
     if (!j || j.ok !== true) return null;
-    const out = { stats: null, videos: [] };
+    const out = { stats: null, videos: [], previews: j.previews === true };
     const s = j.stats;
     if (s && Number.isInteger(s.followers) && s.followers > 0 && s.followers < 1e9) {
       out.stats = { followers: s.followers, likes: Number.isInteger(s.likes) && s.likes >= 0 && s.likes < 1e12 ? s.likes : 0 };
@@ -248,7 +248,11 @@
   })();
 
   /* ---------- Filmy: laczymy liste z config.js z danymi z TikToka ---------- */
-  const D = mergeLive(STATIC_DATA, await freshPromise);
+  const freshData = await freshPromise;
+  const D = mergeLive(STATIC_DATA, freshData);
+  // Starszy Worker (odpowiada na /live, ale bez znacznika previews) nie ma jeszcze adresu /k/NUMER: wtedy kopiujemy zwykly link do strony.
+  // Gdy Worker nie odpowiedzial w porzadku (freshData puste), zakladamy, ze podglad dziala.
+  const workerHasPreviews = !freshData || freshData.previews;
   const idDesc = (a, b) => (b.id.length - a.id.length) || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
   const pool = new Map();
   (D.videos || []).forEach((v) => pool.set(v.id, { id: v.id, title: v.title, views: v.views, lqip: v.lqip, cover: v.cover }));
@@ -546,7 +550,7 @@
 
   /* Kopiowanie linku do filmu. Gdy jest Worker (liveApi), to jego adres /k/NUMER: wklejony na Discordzie pokazuje okladke i tytul
      tego filmu, a klikniety przenosi na strone z otwartym filmem. Bez Workera kopiujemy zwykly adres strony z ?film=NUMER. */
-  const shareBase = typeof C.liveApi === "string" ? C.liveApi.replace(/\/live\/?$/, "") : "";
+  const shareBase = typeof C.liveApi === "string" && workerHasPreviews ? C.liveApi.replace(/\/live\/?$/, "") : "";
   const shareUrl = (id) => (shareBase ? shareBase + "/k/" + id : location.origin + location.pathname + "?film=" + id);
   let shareTimer = 0;
   const toastEl = $("#player-toast");
