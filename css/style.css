@@ -464,36 +464,37 @@ a.tile:active { transform: scale(.985); }
 
 /* ---------- Strona streamera (tsxnine.pl) ---------- */
 .partner { padding-top: 0; padding-bottom: clamp(64px, 9vw, 120px); }
+/* Ramka jak na tsxnine.pl: pod blokiem obraca sie duzy pasek z zielonym swiatlem (.partner-beam), a przykrywa go
+   tlo bloku (.partner-cover) odsuniete o 2 px od krawedzi. Widac wiec tylko swiatlo przesuwajace sie po 2-pikselowej
+   ramce, po dwoch przeciwnych stronach naraz. Tempo: czas w animacji partner-beam (4 s na obrot). */
 .partner-link {
   position: relative; isolation: isolate; overflow: hidden; display: block;
   padding: clamp(24px, 4vw, 48px);
-  border-radius: var(--r-card); border: 1px solid var(--line);
+  border-radius: var(--r-card); background: var(--bg-elev);
+  box-shadow: inset 0 0 0 1px var(--line); /* cienka ramka tam, gdzie akurat nie ma swiatla */
+  transition: color .3s, transform .4s var(--ease);
+}
+.partner-beam {
+  position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; z-index: 0; pointer-events: none;
+  background: linear-gradient(0deg, transparent, transparent, var(--accent), transparent, transparent);
+  animation: partner-beam 4s linear infinite;
+}
+@keyframes partner-beam { to { transform: rotate(360deg); } }
+.partner-cover {
+  position: absolute; inset: 2px; z-index: 1; pointer-events: none; border-radius: calc(var(--r-card) - 2px);
   background: var(--bg-elev); /* zapas dla przegladarek bez color-mix */
   background: radial-gradient(80% 140% at 100% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%), var(--bg-elev);
-  transition: border-color .3s, color .3s, transform .4s var(--ease);
 }
-/* zielone wypelnienie przy najechaniu to osobna warstwa, bo tla-gradientu nie da sie plynnie przejsc w kolor */
+/* zielone wypelnienie przy najechaniu: nad ramka i tlem, pod tekstem */
 .partner-link::before {
-  content: ""; position: absolute; inset: 0; z-index: -1; background: var(--accent);
+  content: ""; position: absolute; inset: 0; z-index: 2; background: var(--accent);
   opacity: 0; transition: opacity .3s;
 }
-@media (hover: hover) { .partner-link:hover { color: var(--on-accent); border-color: transparent; transform: translateY(-4px); } }
+.partner-label, .partner-name, .partner-note, .partner-link .tile-arrow { position: relative; z-index: 3; }
+@media (hover: hover) { .partner-link:hover { color: var(--on-accent); transform: translateY(-4px); } }
 @media (hover: hover) { .partner-link:hover::before { opacity: 1; } }
 .partner-link:active { transform: scale(.99); }
 .partner-link:focus-visible { outline-offset: 4px; }
-/* Zielone swiatlo biegnace wokol ramki (main.js, partnerGlow): pozycje liczy JS, tu wyglad.
-   Pierscien to maska 2 px z jasnym punktem, obok miekka poswiata wewnatrz bloku. */
-.partner-ring {
-  position: absolute; inset: 0; z-index: 1; padding: calc(2.4px + .6px * var(--glow-k, 1)); border-radius: inherit; pointer-events: none; transition: opacity .3s;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
-}
-.partner-run { position: absolute; left: 0; top: 0; width: calc(180px * var(--glow-k, 1)); height: calc(180px * var(--glow-k, 1)); border-radius: 50%; will-change: transform;
-  background: radial-gradient(closest-side, #d6ffc4 0%, #b8ff9e 12%, var(--accent) 42%, rgb(87 224 44 / 0) 100%); }
-.partner-glow { position: absolute; inset: 0; z-index: -1; overflow: hidden; border-radius: inherit; pointer-events: none; transition: opacity .3s; }
-.partner-run-soft { position: absolute; left: 0; top: 0; width: calc(340px * var(--glow-k, 1)); height: calc(340px * var(--glow-k, 1)); border-radius: 50%; will-change: transform;
-  background: radial-gradient(closest-side, rgb(87 224 44 / .28), rgb(87 224 44 / 0)); }
-@media (hover: hover) { .partner-link:hover .partner-ring, .partner-link:hover .partner-glow { opacity: 0; } }
 .partner-label { display: block; margin-bottom: 8px; font-size: 17px; font-weight: 500; color: var(--muted); transition: color .3s; }
 .partner-name {
   display: block; font: 900 clamp(48px, 15.5vw, 176px)/.9 var(--font-display);
