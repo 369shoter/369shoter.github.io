@@ -270,13 +270,14 @@ ul { padding: 0; list-style: none; }
   background: linear-gradient(90deg, #3aa71a, var(--accent));
 }
 .milestone.in .milestone-fill { transform: scaleX(var(--p, 0)); transition: transform 1.9s cubic-bezier(.33, .9, .3, 1) .35s; }
-/* polysk przesuwajacy sie po wypelnieniu (tylko gdy pasek jest widoczny na ekranie) */
+/* polysk, ktory przesuwa sie po wypelnieniu bez przerwy: wzor powtarza sie co szerokosc wypelnienia, wiec gdy jedno pasmo
+   znika z prawej strony, z lewej wjezdza nastepne (petla bez szwu i bez chwili bez ruchu). Tylko gdy pasek jest na ekranie. */
 .milestone-fill::after {
-  content: ""; position: absolute; inset: 0 auto 0 0; width: 45%; translate: -130% 0;
-  background: linear-gradient(100deg, transparent, rgb(255 255 255 / .42), transparent);
+  content: ""; position: absolute; inset: 0 auto 0 0; width: 200%; translate: -50% 0;
+  background: linear-gradient(100deg, transparent 0, transparent 25%, rgb(255 255 255 / .4) 50%, transparent 75%, transparent 100%) 0 0 / 50% 100% repeat-x;
 }
-.milestone.in.is-visible .milestone-fill::after { animation: milestone-shine 3.4s ease-in-out 2.4s infinite; }
-@keyframes milestone-shine { 0% { translate: -130% 0; } 60%, 100% { translate: 330% 0; } }
+.milestone.in.is-visible .milestone-fill::after { animation: milestone-shine 2.4s linear infinite; }
+@keyframes milestone-shine { to { translate: 0 0; } }
 /* kropka na koncu wypelnienia: jedzie razem z paskiem, potem pulsuje */
 .milestone-tip { position: absolute; inset: 0; translate: -100% 0; pointer-events: none; }
 .milestone.in .milestone-tip { translate: calc(var(--p, 0) * 100% - 100%) 0; transition: translate 1.9s cubic-bezier(.33, .9, .3, 1) .35s; }
