@@ -751,6 +751,52 @@
     if (typeof p.note === "string") { note.textContent = p.note; note.hidden = !p.note; }
   })();
 
+  /* ---------- Blok tsxnine.pl: rowne tempo swiatla na ramce ----------
+     Pasek (.partner-beam) obracany ze stala predkoscia katowa (sam CSS) przesuwa swiatlo po dlugich bokach szerokiego bloku
+     nierowno: przy rogach nawet 10 razy szybciej niz na srodku boku, wiec swiatlo nagle przyspiesza. Tu obrot dostaje klatki
+     kluczowe policzone tak, zeby miejsce, w ktorym pasek przecina ramke, szlo po obwodzie ze stala predkoscia. Liczone od
+     nowa przy zmianie rozmiaru bloku. Tempo: TURN_MS (jedno okrazenie). Bez JS zostaje zwykly obrot z CSS. */
+  (function partnerBeam() {
+    const link = $("#partner-link");
+    const beam = $(".partner-beam");
+    if (!link || !beam || typeof beam.animate !== "function") return;
+    const TURN_MS = 4000;
+    const STEPS = 120;
+    let anim = null, w = 0, h = 0;
+
+    // kat (w stopniach, rosnacy od 0 do 360) dla punktow rozlozonych rowno na obwodzie; start na srodku prawego boku,
+    // dalej zgodnie z ruchem wskazowek zegara (tak jak rotate() w CSS), wspolrzedne wzgledem srodka bloku
+    function frames() {
+      const per = 2 * (w + h), out = [];
+      let prev = 0;
+      for (let i = 0; i <= STEPS; i++) {
+        let s = (i / STEPS) * per, x, y;
+        if (s < h / 2) { x = w / 2; y = s; }
+        else if ((s -= h / 2) < w) { x = w / 2 - s; y = h / 2; }
+        else if ((s -= w) < h) { x = -w / 2; y = h / 2 - s; }
+        else if ((s -= h) < w) { x = -w / 2 + s; y = -h / 2; }
+        else { x = w / 2; y = -h / 2 + (s - w); }
+        let a = (Math.atan2(y, x) * 180) / Math.PI;
+        if (a < 0) a += 360;
+        if (i === STEPS || a < prev) a = i === STEPS ? 360 : a + 360;
+        prev = a;
+        out.push({ transform: "rotate(" + a.toFixed(3) + "deg)", offset: i / STEPS });
+      }
+      return out;
+    }
+    function update() {
+      const nw = link.clientWidth, nh = link.clientHeight;
+      if (!nw || !nh || (Math.abs(nw - w) < 1 && Math.abs(nh - h) < 1)) return;
+      w = nw; h = nh;
+      if (anim) { anim.effect.setKeyframes(frames()); return; }
+      beam.style.animation = "none";
+      anim = beam.animate(frames(), { duration: TURN_MS, iterations: Infinity });
+    }
+    update();
+    if ("ResizeObserver" in window) new ResizeObserver(update).observe(link);
+    else window.addEventListener("resize", update);
+  })();
+
   /* ---------- Stopka ---------- */
   (function buildFooter() {
     const list = $("#footer-links");

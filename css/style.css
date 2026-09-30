@@ -466,7 +466,8 @@ a.tile:active { transform: scale(.985); }
 .partner { padding-top: 0; padding-bottom: clamp(64px, 9vw, 120px); }
 /* Ramka jak na tsxnine.pl: w 2-pikselowym pierscieniu (.partner-ring, maska) obraca sie duzy pasek z zielonym swiatlem
    (.partner-beam), wiec swiatlo przesuwa sie po ramce, po dwoch przeciwnych stronach naraz. Poswiata wokol swiatla to
-   filtr drop-shadow na .partner-fx (swieci tylko tam, gdzie akurat jest swiatlo). Tempo: 4s w .partner-beam. */
+   filtr drop-shadow na .partner-fx (swieci tylko tam, gdzie akurat jest swiatlo). Obrot z rownym tempem na obwodzie ustawia
+   main.js (partnerBeam, tempo: TURN_MS); animacja ponizej to zapas bez JS. */
 .partner-link {
   position: relative; isolation: isolate; display: block;
   padding: clamp(24px, 4vw, 48px);
