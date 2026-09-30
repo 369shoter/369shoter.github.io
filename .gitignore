@@ -1,0 +1,4 @@
+
+# cache Pythona (powstaje przy uruchomieniu scripts/update_tiktok.py)
+__pycache__/
+*.pyc
