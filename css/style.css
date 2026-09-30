@@ -452,25 +452,9 @@ a.tile:active { transform: scale(.985); }
 /* ---------- Najnowsze filmy (siatka) ---------- */
 .latest { padding-top: 0; padding-bottom: clamp(56px, 7vw, 96px); }
 .latest .h2 { margin-bottom: clamp(28px, 4vw, 48px); }
-.latest-grid, .all-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-@media (min-width: 820px) { .latest-grid, .all-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }
+.latest-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (min-width: 820px) { .latest-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }
 
-/* ---------- Wszystkie filmy (przelacznik Najnowsze / Najpopularniejsze) ---------- */
-.all[hidden] { display: none; }
-.all-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; margin-bottom: clamp(28px, 4vw, 48px); }
-.all-head .h2 { margin: 0; }
-.seg { display: inline-flex; padding: 4px; gap: 4px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); background: var(--bg-elev); }
-.seg-btn {
-  min-height: 44px; padding: 0 18px; border: 0; border-radius: var(--r-pill); background: transparent;
-  color: var(--muted); font: 600 15px/1 var(--font-body); cursor: pointer;
-  transition: background-color .25s, color .25s, transform .3s var(--ease);
-}
-@media (hover: hover) { .seg-btn:hover { color: var(--text); } }
-.seg-btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
-.seg-btn:active { transform: scale(.96); }
-.seg-btn:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
-.all-grid.is-swap { animation: fade .4s var(--ease); }
-.all-more { display: flex; justify-content: center; margin-top: clamp(28px, 4vw, 44px); }
 
 /* ---------- Strona 404 ---------- */
 .nf { min-height: 100vh; min-height: 100dvh; display: grid; align-content: center; justify-items: start; gap: 20px; padding: 24px var(--gutter); max-width: var(--wrap); margin-inline: auto; }

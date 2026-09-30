@@ -67,16 +67,12 @@ Wyniki oglądasz na https://369shoter.goatcounter.com. Kliknięcia to ścieżki 
 `klik/` (linki i przyciski) oraz `film/` (poszczególne filmy). Część osób z blokerem reklam nie
 zostanie policzona, więc liczby są zaniżone.
 
-## Wszystkie filmy, hero i Discord
+## Hero i kafelek Discord
 
-- **Sekcja „Wszystkie filmy”** (pod „Najnowsze filmy”) pokazuje wszystkie znane filmy z przełącznikiem **Najnowsze / Najpopularniejsze**.
-  Na start jest 8 kart, „Pokaż więcej” dokłada po 8. Kolejność z przełącznika jest też kolejnością przewijania w odtwarzaczu. Sekcja
-  sama się chowa, gdy wszystkie filmy i tak widać wyżej (nie więcej niż `latestCount`). W menu u góry pojawia się wtedy link „Wszystkie”.
-  Ostatni kafelek karuzeli „Najczęściej oglądane” to teraz „Więcej na TikToku” (link do profilu).
-  Wygląd: `.all*` i `.seg*` w `css/style.css`, działanie: funkcja `allVideosSection` w `js/main.js`, miejsce w `index.html`: `#wszystkie`.
-- **Okładki w hero** po najechaniu myszą powiększają się w całości (razem z ramką), nie tylko obraz w środku.
+- **Okładki w hero** po najechaniu myszą powiększają się w całości (razem z ramką) i płynnie wracają po zjechaniu kursora.
+  Kolejność warstw się nie zmienia, więc karta nie wskakuje na sąsiednie. Reguła `.is-live .shot:hover` w `css/style.css`.
 - **Kafelek Discord** w trybie kopiowania nicku (bez zaproszenia na serwer) kopiuje nick po kliknięciu w dowolne miejsce kafelka, nie tylko
-  w przycisk. Gdy w `config.js` jest `discord.invite`, kafelek jest linkiem do serwera, jak wcześniej.
+  w przycisk. Gdy w `config.js` jest `discord.invite`, kafelek jest linkiem do serwera.
 
 ## Udostępnianie klipów
 
