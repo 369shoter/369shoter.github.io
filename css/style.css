@@ -222,14 +222,14 @@ ul { padding: 0; list-style: none; }
 .shot img { width: 100%; height: 100%; object-fit: cover; }
 .is-live .shot { cursor: pointer; transition: scale .45s var(--ease); }
 .shot:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
-/* po najechaniu powieksza sie cala karta (z ramka), a nie sam obraz w srodku; wyzej niz sasiednie karty, ale pod awatarem */
-@media (hover: hover) { .is-live .shot:hover { scale: 1.07; z-index: 4; } }
+/* po najechaniu powieksza sie cala karta (z ramka), a nie sam obraz w srodku; warstwy sie nie zmieniaja, wiec karta nie wskakuje na sasiednie */
+@media (hover: hover) { .is-live .shot:hover { scale: 1.06; } }
 .shot-a { left: 0;    top: 16%; rotate: -7deg; z-index: 1; --depth: 34; }
 .shot-b { left: 28.5%; top: 0;   z-index: 2; --depth: -22; }
 .shot-c { right: 0;   top: 15%; rotate: 7deg;  z-index: 1; --depth: 20; }
 .hero-avatar {
   --depth: -48;
-  position: absolute; left: 4%; bottom: 0; z-index: 5;
+  position: absolute; left: 4%; bottom: 0; z-index: 3;
   width: 34%; height: auto; aspect-ratio: 1; border-radius: 50%;
   border: 5px solid var(--bg);
   box-shadow: var(--shadow);
@@ -356,7 +356,7 @@ a.tile:active { transform: scale(.985); }
   font-size: 15px; font-weight: 600;
   transition: border-color .2s, color .2s, background-color .2s, transform .3s var(--ease);
 }
-@media (hover: hover) { .copy:hover, .tile-discord.is-copy:hover .copy { border-color: var(--accent-ink); color: var(--accent-ink); } }
+@media (hover: hover) { .copy:hover, .tile-discord.is-copy:hover .copy:not(.is-done) { border-color: var(--accent-ink); color: var(--accent-ink); } }
 .tile-discord.is-copy { cursor: pointer; }
 .tile-discord.is-copy:active .copy { transform: scale(.96); }
 .copy:active { transform: scale(.96); }
@@ -678,8 +678,9 @@ html.intro-on { overflow: hidden; }
   .caret { animation: blink 1.05s steps(1, end) 1.4s 6; }
   .hero-sub      { animation: rise .9s var(--ease) both .5s; }
   .hero-cta      { animation: rise .9s var(--ease) both .62s; }
-  .shot          { animation: drop-in 1s var(--ease) both; animation-delay: calc(.35s + var(--i, 0) * .12s); }
-  .hero-avatar   { animation: drop-in 1s var(--ease) both .8s; }
+  /* fill "backwards" (nie "both"): po wjezdzie animacja nie trzyma wartosci, dzieki czemu plynnie dzialaja przejscia scale (najechanie) i translate (paralaksa) */
+  .shot          { animation: drop-in 1s var(--ease) backwards; animation-delay: calc(.35s + var(--i, 0) * .12s); }
+  .hero-avatar   { animation: drop-in 1s var(--ease) backwards .8s; }
 
   /* Wjazd sekcji przy przewijaniu */
   .js [data-reveal] {
