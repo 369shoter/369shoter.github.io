@@ -157,6 +157,25 @@ Strona jest projektowana głównie pod telefony (większość osób wchodzi z li
 - Starsze przeglądarki w aplikacjach: style mają zapasowe wersje (`color-mix`, `dvh`, `overflow: clip`), a gdyby
   `js/main.js` się nie uruchomił, po 5 sekundach cała treść i tak staje się widoczna.
 
+## Szybkość i dostępność (ostatni przegląd)
+
+Zmierzone Lighthouse'em (telefon, wolne łącze 4G): wydajność 83 -> 91, dostępność 100, dobre praktyki 100, SEO 100;
+waga strony 435 -> 394 KiB, najdłuższe „największe wyrenderowanie” (LCP) 4,4 -> 3,3 s. Dodatkowo `axe-core` nie znajduje
+naruszeń dostępności (strona, otwarty odtwarzacz i ekran logowania panelu), każdy element ma widoczny fokus z klawiatury,
+a najsłabszy kontrast tekstu (szary na ciemnym tle) to 6,6:1, czyli ponad wymagane 4,5:1.
+
+Co zmieniło się w plikach:
+
+- Czcionki `*-latin-ext.woff2` to podzbiór tylko z polskimi literami (ok. 4 KB zamiast 16-29 KB), zakres znaków w `@font-face`
+  w `css/style.css` jest dopasowany. Podzbiór powstał narzędziem `pyftsubset` z fonttools. Gdybyś potrzebował innych liter
+  (np. czeskich), weź oryginalne pliki z Google Fonts albo zrób szerszy podzbiór.
+- `assets/avatar.webp` i `assets/grain.png` są mocniej skompresowane (bez widocznej różnicy).
+- Link „369_shoter” w stopce ma w opisie dla czytników ekranu jego widoczny tekst.
+
+Czego nie zmieniałem świadomie: **ekran wczytywania trwa co najmniej 1,5 s** (tak jest zaprojektowany) i to on najbardziej
+wydłuża LCP; skrócenie do ok. 1 s poprawiłoby wynik o kolejne pół sekundy, kosztem krótszej animacji. Serwer GitHub Pages
+ustawia krótki czas cache (10 minut) i nie da się tego zmienić bez własnej domeny za Cloudflare.
+
 ## Ekran wczytywania i stały ciemny motyw
 
 Przy wejściu strona pokazuje na ok. 2 sekundy ekran z logo i zielonym pierścieniem, potem płynnie się odsłania,
@@ -247,5 +266,5 @@ assets/                          awatar, okładki, czcionki, obraz podglądu lin
 
 ## Licencje zasobów
 
-- Czcionki: Big Shoulders Display i Geist (SIL Open Font License), hostowane lokalnie.
+- Czcionki: Big Shoulders Display i Geist (SIL Open Font License), hostowane lokalnie (pliki `latin-ext` to podzbiór z polskimi literami).
 - Ikony marek: Simple Icons (CC0). Pozostałe ikony: Phosphor Icons (MIT).
