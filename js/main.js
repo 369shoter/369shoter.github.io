@@ -764,8 +764,10 @@
     const dot = ring.firstElementChild, soft = glow.firstElementChild;
     // Wielkosc swiatla i jego tempo rosna z rozmiarem bloku: na telefonie (maly blok) k = 1, na komputerze swiatlo jest wieksze
     // i przesuwa sie szybciej w px/s, dzieki czemu wyglada tak samo jak na telefonie, a nie jak mala kropka gonaca po duzej ramce.
-    // SPEED to predkosc na telefonie (ok. jedno okrazenie na 7 s) w px/s.
+    // SPEED to predkosc na telefonie (ok. jedno okrazenie na 7 s) w px/s. Na wiekszych blokach predkosc rosnie jak k do potegi
+    // SPEED_POW: 2 to stale 7 s na okrazenie, wiecej = szybciej (2,3 daje ok. 6 s na komputerze), mniej = wolniej.
     const SPEED = 157;
+    const SPEED_POW = 2.3;
     let w = 0, h = 0, r = 19, perimeter = 1, k = 1, offset = 0, last = 0, raf = 0, visible = true;
 
     function measure() {
@@ -797,7 +799,7 @@
       raf = 0;
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
       last = now;
-      offset += SPEED * k * dt;
+      offset += SPEED * Math.pow(k, SPEED_POW) * dt;
       render();
       if (visible && !document.hidden) raf = requestAnimationFrame(frame);
     }
