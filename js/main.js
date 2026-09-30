@@ -322,19 +322,39 @@
      "Do 5K obserwujacych brakuje 1,1K" plus pasek postepu i link do TikToka. Prog to najblizsza okragla wartosc powyzej
      aktualnej liczby (lista nizej). Liczba jest ta sama co w statystykach, wiec na zywo z Workera albo z ostatniej publikacji.
      config.js -> milestone: false wylacza. */
+  let milestoneReveal = null; // ustawia milestone(): odliczanie liczby, uruchamiane, gdy pasek wjezdza na ekran
   (function milestone() {
     const box = $("#milestone");
     const followers = live.followers;
     if (!box || C.milestone === false || !Number.isInteger(followers) || followers <= 0) return;
     const goal = [1e3, 2500, 5e3, 7500, 1e4, 15e3, 25e3, 5e4, 75e3, 1e5, 15e4, 25e4, 5e5, 75e4, 1e6].find((g) => g > followers);
     if (!goal) return;
-    $("#milestone-text").append("Do ", el("b", { class: "hl", text: short(goal) }), " obserwujących brakuje ", el("b", { text: (goal - followers).toLocaleString("pl-PL", { useGrouping: "always" }) }));
+    const fmt = (n) => n.toLocaleString("pl-PL", { useGrouping: "always" });
+    const missingEl = el("b", { text: fmt(goal - followers) });
+    $("#milestone-text").append("Do ", el("b", { class: "hl", text: short(goal) }), " obserwujących brakuje ", missingEl);
     const bar = $("#milestone-bar");
     bar.setAttribute("aria-valuemax", String(goal));
     bar.setAttribute("aria-valuenow", String(followers));
     bar.setAttribute("aria-label", short(followers) + " z " + short(goal) + " obserwujących");
-    bar.style.setProperty("--p", Math.min(1, followers / goal).toFixed(4));
+    box.style.setProperty("--p", Math.min(1, followers / goal).toFixed(4)); // dziedziczy pasek i kropka na jego koncu
     box.hidden = false;
+
+    // Gdy pasek wjezdza na ekran, liczba "brakuje" odlicza od progu w dol do prawdziwej wartosci (razem z wypelnieniem paska).
+    milestoneReveal = () => {
+      const start = performance.now() + 350, dur = 1900;
+      missingEl.textContent = fmt(goal);
+      (function tick(now) {
+        const t = Math.max(0, Math.min(1, (now - start) / dur));
+        missingEl.textContent = fmt(t < 1 ? Math.round(goal - followers * (1 - Math.pow(1 - t, 3))) : goal - followers);
+        if (t < 1) requestAnimationFrame(tick);
+      })(performance.now());
+    };
+    // polysk i pulsowanie kropki dzialaja tylko, gdy pasek jest widoczny (oszczedza baterie)
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(([e]) => box.classList.toggle("is-visible", e.isIntersecting), { threshold: 0.2 }).observe(box);
+    } else {
+      box.classList.add("is-visible");
+    }
   })();
 
   function countUp(node) {
@@ -895,6 +915,7 @@
         if (!e.isIntersecting) return;
         e.target.classList.add("in");
         obs.unobserve(e.target);
+        if (e.target.id === "milestone" && milestoneReveal) milestoneReveal();
         if (e.target === statsEl) {
           // liczby wskakuja jedna po drugiej: najpierw zero, potem odliczanie z opoznieniem
           e.target.querySelectorAll(".num").forEach((n, i) => {

@@ -263,13 +263,28 @@ ul { padding: 0; list-style: none; }
 }
 .milestone-cta .icon { transition: transform .3s var(--ease); }
 @media (hover: hover) { .milestone-cta:hover .icon { transform: translate(2px, -2px); } }
+.milestone-track { position: relative; }
 .milestone-bar { position: relative; height: 10px; border-radius: var(--r-pill); background: var(--bg-elev-2); border: 1px solid var(--line); overflow: hidden; }
 .milestone-fill {
-  position: absolute; inset: 0; border-radius: inherit; transform-origin: left; transform: scaleX(0);
+  position: absolute; inset: 0; border-radius: inherit; overflow: hidden; transform-origin: left; transform: scaleX(0);
   background: linear-gradient(90deg, #3aa71a, var(--accent));
 }
-.milestone.in .milestone-fill { transform: scaleX(var(--p, 0)); transition: transform 1.5s var(--ease) .35s; }
-@media (prefers-reduced-motion: reduce) { .milestone.in .milestone-fill { transition: none; } }
+.milestone.in .milestone-fill { transform: scaleX(var(--p, 0)); transition: transform 1.9s cubic-bezier(.33, .9, .3, 1) .35s; }
+/* polysk przesuwajacy sie po wypelnieniu (tylko gdy pasek jest widoczny na ekranie) */
+.milestone-fill::after {
+  content: ""; position: absolute; inset: 0 auto 0 0; width: 45%; translate: -130% 0;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / .42), transparent);
+}
+.milestone.in.is-visible .milestone-fill::after { animation: milestone-shine 3.4s ease-in-out 2.4s infinite; }
+@keyframes milestone-shine { 0% { translate: -130% 0; } 60%, 100% { translate: 330% 0; } }
+/* kropka na koncu wypelnienia: jedzie razem z paskiem, potem pulsuje */
+.milestone-tip { position: absolute; inset: 0; translate: -100% 0; pointer-events: none; }
+.milestone.in .milestone-tip { translate: calc(var(--p, 0) * 100% - 100%) 0; transition: translate 1.9s cubic-bezier(.33, .9, .3, 1) .35s; }
+.milestone-tip::before, .milestone-tip::after { content: ""; position: absolute; right: -7px; top: 50%; width: 14px; height: 14px; margin-top: -7px; border-radius: 50%; }
+.milestone-tip::after { background: var(--accent); box-shadow: 0 0 0 3px var(--bg), 0 0 14px rgb(87 224 44 / .85); scale: 0; }
+.milestone.in .milestone-tip::after { scale: 1; transition: scale .4s var(--ease) 2s; }
+.milestone-tip::before { border: 2px solid var(--accent); opacity: 0; }
+.milestone.in.is-visible .milestone-tip::before { animation: ping 1.8s ease-out 2.4s infinite; }
 
 /* ---------- Kafelki z linkami ---------- */
 .links .h2 { margin-bottom: clamp(28px, 4vw, 48px); }
