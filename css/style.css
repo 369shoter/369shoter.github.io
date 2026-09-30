@@ -220,16 +220,16 @@ ul { padding: 0; list-style: none; }
   background: var(--bg-elev);
 }
 .shot img { width: 100%; height: 100%; object-fit: cover; }
-.is-live .shot { cursor: pointer; transition: scale .45s var(--ease); }
+.is-live .shot { cursor: pointer; }
+.is-live .shot img { transition: transform .5s var(--ease); }
 .shot:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
-/* po najechaniu powieksza sie cala karta (z ramka), a nie sam obraz w srodku; wyzej niz sasiednie karty, ale pod awatarem */
-@media (hover: hover) { .is-live .shot:hover { scale: 1.07; z-index: 4; } }
+@media (hover: hover) { .is-live .shot:hover img { transform: scale(1.05); } }
 .shot-a { left: 0;    top: 16%; rotate: -7deg; z-index: 1; --depth: 34; }
 .shot-b { left: 28.5%; top: 0;   z-index: 2; --depth: -22; }
 .shot-c { right: 0;   top: 15%; rotate: 7deg;  z-index: 1; --depth: 20; }
 .hero-avatar {
   --depth: -48;
-  position: absolute; left: 4%; bottom: 0; z-index: 5;
+  position: absolute; left: 4%; bottom: 0; z-index: 3;
   width: 34%; height: auto; aspect-ratio: 1; border-radius: 50%;
   border: 5px solid var(--bg);
   box-shadow: var(--shadow);
@@ -355,9 +355,7 @@ a.tile:active { transform: scale(.985); }
   font-size: 15px; font-weight: 600;
   transition: border-color .2s, color .2s, background-color .2s, transform .3s var(--ease);
 }
-@media (hover: hover) { .copy:hover, .tile-discord.is-copy:hover .copy { border-color: var(--accent-ink); color: var(--accent-ink); } }
-.tile-discord.is-copy { cursor: pointer; }
-.tile-discord.is-copy:active .copy { transform: scale(.96); }
+@media (hover: hover) { .copy:hover { border-color: var(--accent-ink); color: var(--accent-ink); } }
 .copy:active { transform: scale(.96); }
 .copy.is-done { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
@@ -451,25 +449,8 @@ a.tile:active { transform: scale(.985); }
 /* ---------- Najnowsze filmy (siatka) ---------- */
 .latest { padding-top: 0; padding-bottom: clamp(56px, 7vw, 96px); }
 .latest .h2 { margin-bottom: clamp(28px, 4vw, 48px); }
-.latest-grid, .all-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-@media (min-width: 820px) { .latest-grid, .all-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }
-
-/* ---------- Wszystkie filmy (przelacznik Najnowsze / Najpopularniejsze) ---------- */
-.all[hidden] { display: none; }
-.all-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; margin-bottom: clamp(28px, 4vw, 48px); }
-.all-head .h2 { margin: 0; }
-.seg { display: inline-flex; padding: 4px; gap: 4px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); background: var(--bg-elev); }
-.seg-btn {
-  min-height: 44px; padding: 0 18px; border: 0; border-radius: var(--r-pill); background: transparent;
-  color: var(--muted); font: 600 15px/1 var(--font-body); cursor: pointer;
-  transition: background-color .25s, color .25s, transform .3s var(--ease);
-}
-@media (hover: hover) { .seg-btn:hover { color: var(--text); } }
-.seg-btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
-.seg-btn:active { transform: scale(.96); }
-.seg-btn:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
-.all-grid.is-swap { animation: fade .4s var(--ease); }
-.all-more { display: flex; justify-content: center; margin-top: clamp(28px, 4vw, 44px); }
+.latest-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (min-width: 820px) { .latest-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }
 
 /* ---------- Strona 404 ---------- */
 .nf { min-height: 100vh; min-height: 100dvh; display: grid; align-content: center; justify-items: start; gap: 20px; padding: 24px var(--gutter); max-width: var(--wrap); margin-inline: auto; }
@@ -733,7 +714,6 @@ html.intro-on { overflow: hidden; }
     translate: calc(var(--px) * var(--depth) * 1px) calc(var(--py) * var(--depth) * .7px);
     transition: translate .6s var(--ease);
   }
-  .is-live .shot { transition: translate .6s var(--ease), scale .45s var(--ease); }
   @supports (animation-timeline: scroll()) {
     .hero-visual { animation: drift linear both; animation-timeline: scroll(root); animation-range: 0 100vh; }
   }

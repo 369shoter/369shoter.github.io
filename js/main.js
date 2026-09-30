@@ -234,16 +234,9 @@
         .catch(() => {});
     }
 
-    // Tryb kopiowania nicku (bez zaproszenia na serwer): klikniecie GDZIEKOLWIEK w kafelek kopiuje nick, nie tylko w przycisk.
-    // Jeden nasluchiwacz na kafelku (klikniecie w przycisk tez do niego dochodzi), wiec nick nie kopiuje sie dwa razy.
-    if (discord.invite || !discord.username) return;
-    const tile = $("#discord");
-    tile.classList.add("is-copy");
     let timer;
-    tile.addEventListener("click", async (e) => {
-      if (e.target.closest("a")) return;                                   // np. ewentualny link w srodku
-      if (String(window.getSelection && window.getSelection()).trim()) return; // ktos zaznacza tekst, nie chce kopiowac
-      const done = await copyText(discord.username);
+    copyBtn.addEventListener("click", async () => {
+      const done = await copyText(discord.username || "");
       label.textContent = done ? "Skopiowano" : "Nie udało się";
       copyBtn.classList.toggle("is-done", done);
       clearTimeout(timer);
@@ -393,7 +386,7 @@
     const more = el("a", { class: "vcard-more", href: tiktokBase, target: "_blank", rel: "noopener" }, [
       svgUse("tiktok", "tile-mark"),
       el("span", { class: "tile-arrow" }, [icon("arrow-up-right")]),
-      el("span", { class: "vcard-more-title", text: "Więcej na TikToku" }),
+      el("span", { class: "vcard-more-title", text: "Wszystkie filmy" }),
     ]);
     track.append(el("div", { class: "vcard" }, [more]));
   }
@@ -437,50 +430,6 @@
       latestGrid.append(card);
     });
   }
-
-  /* ---------- Wszystkie filmy: cala lista z przelacznikiem Najnowsze / Najpopularniejsze ----------
-     Pokazuje 8 filmow, a "Pokaz wiecej" dokladane po 8. Kolejnosc z przelacznika jest tez kolejnoscia przewijania w odtwarzaczu.
-     Sekcja chowa sie, gdy wszystkie filmy i tak widac juz wyzej (w "Najnowsze filmy"). */
-  let markFilmCards = null; // ustawia je analityka (nizej), gdy jest wlaczona
-  (function allVideosSection() {
-    const section = $("#wszystkie");
-    const grid = $("#all-grid");
-    const moreBtn = $("#all-more");
-    if (!section || !grid || !moreBtn || allVideos.length <= (C.latestCount || 4)) return;
-    const STEP = 8;
-    let sort = "new";
-    let shown = STEP;
-
-    const sorted = () => allVideos.slice().sort(sort === "top" ? (a, b) => (b.views || 0) - (a.views || 0) || idDesc(a, b) : idDesc);
-
-    function render(swap) {
-      const list = sorted();
-      grid.replaceChildren(...list.slice(0, shown).map((v) => videoCard(v, list)));
-      const left = list.length - shown;
-      moreBtn.hidden = left <= 0;
-      moreBtn.textContent = "Pokaż więcej (" + left + ")";
-      if (markFilmCards) markFilmCards(grid);
-      if (swap) { // krotkie pojawienie sie nowej kolejnosci
-        grid.classList.remove("is-swap");
-        void grid.offsetWidth;
-        grid.classList.add("is-swap");
-      }
-    }
-
-    section.querySelectorAll("[data-sort]").forEach((btn) => btn.addEventListener("click", () => {
-      if (btn.dataset.sort === sort) return;
-      sort = btn.dataset.sort;
-      shown = STEP; // po zmianie kolejnosci zaczynamy od poczatku listy
-      section.querySelectorAll("[data-sort]").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
-      render(true);
-    }));
-    moreBtn.addEventListener("click", () => { shown += STEP; render(false); });
-
-    render(false);
-    section.hidden = false;
-    const navLink = $("#nav-all");
-    if (navLink) navLink.hidden = false;
-  })();
 
   /* ---------- Hero: okladki losowane sposrod 6 najlepszych filmow ----------
      Przy kazdym wejsciu (i odswiezeniu) losujemy 3 z 6 najczesciej ogladanych. Potem sie nie zmieniaja.
@@ -1042,10 +991,10 @@
     mark(".tile-tiktok", "tiktok-kafelek", "TikTok (kafelek)");
     mark(".tile-ig", "instagram-kafelek", "Instagram (kafelek)");
     mark(".tile-yt", "youtube-kafelek", "YouTube (kafelek)");
-    mark("#discord-copy, #discord.is-copy", "discord-kopiuj-nick", "Discord (skopiowanie nicku)");
+    mark("#discord-copy", "discord-kopiuj-nick", "Discord (skopiowanie nicku)");
     mark("#discord-hit", "discord-zaproszenie", "Discord (zaproszenie na serwer)");
     mark("#partner-link", "partner", "Strona streamera (blok na dole)");
-    mark(".vcard-more", "tiktok-wszystkie-filmy", "TikTok (Więcej na TikToku)");
+    mark(".vcard-more", "tiktok-wszystkie-filmy", "TikTok (Wszystkie filmy)");
     mark("#player-link, #player-fallback-link", "film-otworz-tiktok", "Film otwarty na TikToku");
     mark("#player-share", "film-kopiuj-link", "Film: skopiowanie linku");
     document.querySelectorAll("#footer-links a").forEach((a) => {
@@ -1053,11 +1002,10 @@
       a.setAttribute("data-goatcounter-click", "klik/stopka-" + slug);
       a.setAttribute("data-goatcounter-title", "Stopka: " + a.textContent.trim());
     });
-    markFilmCards = (root) => root.querySelectorAll(".vcard-media").forEach((b) => {
+    document.querySelectorAll(".vcard-media").forEach((b) => {
       b.setAttribute("data-goatcounter-click", "film/" + b.dataset.id);
       b.setAttribute("data-goatcounter-title", "Film: " + (b.dataset.title || b.dataset.id));
     });
-    markFilmCards(document);
 
     const s = document.createElement("script");
     s.async = true;
