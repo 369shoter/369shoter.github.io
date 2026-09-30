@@ -134,6 +134,7 @@
         <a href="#linki">Znajdź mnie</a>
         <a href="#filmy">Top filmy</a>
         <a href="#najnowsze">Najnowsze</a>
+        <a href="#wszystkie" id="nav-all" hidden>Wszystkie</a>
       </nav>
 
       <div class="header-socials">
@@ -262,6 +263,21 @@
       <div class="wrap">
         <h2 class="h2" data-reveal><span class="wipe">Najnowsze filmy</span></h2>
         <div class="latest-grid" id="latest-grid"></div>
+      </div>
+    </section>
+
+    <!-- Wszystkie znane filmy z przelacznikiem kolejnosci. Pokazuje i wypelnia ja js/main.js (chowa sie, gdy jest malo filmow). -->
+    <section class="all section" id="wszystkie" hidden>
+      <div class="wrap">
+        <div class="all-head">
+          <h2 class="h2" data-reveal><span class="wipe">Wszystkie filmy</span></h2>
+          <div class="seg" role="group" aria-label="Kolejność filmów">
+            <button class="seg-btn" type="button" data-sort="new" aria-pressed="true">Najnowsze</button>
+            <button class="seg-btn" type="button" data-sort="top" aria-pressed="false">Najpopularniejsze</button>
+          </div>
+        </div>
+        <div class="all-grid" id="all-grid"></div>
+        <div class="all-more"><button class="btn btn-ghost" id="all-more" type="button" hidden>Pokaż więcej</button></div>
       </div>
     </section>
 
