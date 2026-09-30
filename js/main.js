@@ -548,10 +548,17 @@
     showHintOnce();
   }
 
-  /* Kopiowanie linku do filmu. Gdy jest Worker (liveApi), to jego adres /k/NUMER: wklejony na Discordzie pokazuje okladke i tytul
-     tego filmu, a klikniety przenosi na strone z otwartym filmem. Bez Workera kopiujemy zwykly adres strony z ?film=NUMER. */
+  /* Kopiowanie linku do filmu. Wklejony na Discordzie itp. pokazuje okladke i tytul tego filmu, a klikniety przenosi na strone z otwartym
+     filmem. Dla filmow z opublikowanej listy to adres na tej samej domenie (strona/k/NUMER/), dla swiezo dodanych adres Workera
+     (/k/NUMER, gdy Worker to umie), a bez Workera zwykly adres strony z ?film=NUMER (bez osobnego podgladu). */
   const shareBase = typeof C.liveApi === "string" && workerHasPreviews ? C.liveApi.replace(/\/live\/?$/, "") : "";
-  const shareUrl = (id) => (shareBase ? shareBase + "/k/" + id : location.origin + location.pathname + "?film=" + id);
+  const publishedIds = new Set((STATIC_DATA.videos || []).map((v) => v.id));
+  const shareUrl = (id) => {
+    // film z opublikowanej listy ma swoja strone z podgladem na tej samej domenie (strona/k/NUMER/, robi ja scripts/make_share_pages.py)
+    if (publishedIds.has(id)) return new URL("k/" + id + "/", location.href).href;
+    // swiezo dodany film: jeszcze nie ma takiej strony, wiec adres Workera, ktory robi podglad na zywo (albo zwykly link ze ?film=)
+    return shareBase ? shareBase + "/k/" + id : location.origin + location.pathname + "?film=" + id;
+  };
   let shareTimer = 0;
   const toastEl = $("#player-toast");
   function resetShare() {

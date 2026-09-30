@@ -125,7 +125,7 @@ aktualny `admin-api.js` i kliknąć **Deploy**.
 - Sprawdzisz to w przeglądarce: otwórz Konsolę na swojej stronie i wpisz
   `fetch("https://TWOJ-WORKER.workers.dev/live").then(r => r.json()).then(console.log)`.
   Powinieneś zobaczyć `ok: true`, liczbę obserwujących i listę filmów.
-- **Podgląd linku do klipu:** ten sam Worker oddaje publiczny adres `/k/NUMER_FILMU` (np. `https://TWOJ-WORKER.workers.dev/k/7691066909055388961`).
+- **Podgląd linku do klipu dla świeżo dodanych filmów:** filmy z opublikowanej listy mają własne strony na `tymonekk.github.io/k/NUMER/` (robi je `scripts/make_share_pages.py` przy publikacji). Dla filmu, którego ta lista jeszcze nie zna, strona kopiuje adres Workera. Ten sam Worker oddaje publiczny adres `/k/NUMER_FILMU` (np. `https://TWOJ-WORKER.workers.dev/k/7691066909055388961`).
   To strona z znacznikami `og:` (tytuł, wyświetlenia, obraz), z których korzystają Discord, Messenger i podobne. Człowieka od razu
   przenosi na `https://tymonekk.github.io/?film=NUMER`. Przycisk **Kopiuj link** w odtwarzaczu kopiuje właśnie ten adres. Obraz bierze ze strony
   (`assets/og/NUMER.jpg`, robi go `scripts/make_previews.py`), a gdy go jeszcze nie ma, okładkę z TikToka. Adres jest publiczny, ale nie robi nic

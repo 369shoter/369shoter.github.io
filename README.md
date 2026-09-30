@@ -70,18 +70,21 @@ zostanie policzona, więc liczby są zaniżone.
 ## Udostępnianie klipów
 
 W odtwarzaczu jest przycisk **Kopiuj link** (na wąskim telefonie sama ikona, potwierdzenie pokazuje się na filmie).
-Skopiowany adres ma postać `https://TWOJ-WORKER.workers.dev/k/NUMER_FILMU`. Wklejony na Discordzie, w Messengerze itp.
+Skopiowany adres to zwykle `https://tymonekk.github.io/k/NUMER_FILMU/`. Wklejony na Discordzie, w Messengerze itp.
 pokazuje **okładkę i tytuł właśnie tego klipu** (obraz 1200x630 z okładką, tytułem i liczbą wyświetleń), a kliknięty
 przenosi od razu na stronę z otwartym filmem (`https://tymonekk.github.io/?film=NUMER_FILMU`). Możesz też sam wpisać
 `?film=NUMER` na końcu adresu strony: tak otwiera się dowolny film, także spoza list (ukryte w panelu się nie otwierają).
 
-- **Skąd obrazy podglądu:** `scripts/make_previews.py` robi je przy każdej publikacji do `assets/og/NUMER.jpg` (z okładek i
-  czcionek strony; nie są w repozytorium, tylko dokładane do publikowanej strony). Nowy klip dostaje swój obraz przy najbliższej
-  publikacji, a do tego czasu podgląd pokazuje okładkę prosto z TikToka.
-- **Skąd tytuł i wyświetlenia:** Worker bierze je z tych samych danych co strona (`/live`), a dla starszych filmów z oEmbed TikToka
+- **Strony `/k/NUMER/`:** `scripts/make_share_pages.py` robi je przy każdej publikacji dla wszystkich filmów z `data/tiktok.js`
+  (bez ukrytych w panelu), razem z obrazami `assets/og/NUMER.jpg` z `scripts/make_previews.py`. Nie ma ich w repozytorium,
+  powstają tylko w publikowanej stronie. Działają bez Workera.
+- **Świeżo dodany film** nie ma jeszcze takiej strony (powstanie przy najbliższej publikacji). Dla niego przycisk kopiuje adres
+  Workera (`https://TWOJ-WORKER.workers.dev/k/NUMER`), który robi ten sam podgląd na żywo i też przenosi na film. Gdyby ktoś
+  wszedł w `/k/NUMER/` zanim strona powstanie, `404.html` przeniesie go na film (tylko bez ładnego podglądu).
+- **Skąd tytuł i wyświetlenia w Workerze:** z tych samych danych co strona (`/live`), a dla starszych filmów z oEmbed TikToka
   (najwyżej 20 takich zapytań na minutę, wynik trzymany 10 minut).
-- Bez Workera (`liveApi: ""`) przycisk kopiuje zwykły adres strony z `?film=`, tylko bez osobnego podglądu klipu.
-- Jak to włączyć: wklej aktualny `worker/admin-api.js` do Workera (patrz `worker/README.md`, krok 9).
+- Bez Workera (`liveApi: ""`) świeży film dostaje zwykły adres strony z `?film=`, bez osobnego podglądu.
+- Worker wpisuje się na stronę przez `worker/README.md`, krok 9.
 
 ## Widoczność w Google
 
@@ -259,6 +262,7 @@ worker/                          serwer hasła dla panelu w Cloudflare (admin-ap
 scripts/update_tiktok.py         pobieranie danych z TikToka (także dla filmów dodanych w panelu)
 scripts/inject_seo.py            dane o filmach dla Google (schema.org), dopisywane przy publikacji
 scripts/make_previews.py         obrazy podglądu linków do klipów (assets/og/NUMER.jpg), robione przy publikacji
+scripts/make_share_pages.py      strony k/NUMER/ z podglądem do udostępniania klipów, robione przy publikacji
 .github/workflows/pages.yml      publikacja i odświeżanie danych (co 5 min)
 robots.txt, sitemap.xml, site.webmanifest, 404.html   widoczność w Google, ikona, strona błędu
 assets/                          awatar, okładki, czcionki, obraz podglądu linku

@@ -9,6 +9,8 @@
   <link rel="icon" type="image/png" href="/assets/favicon.png">
   <!-- Adresy bezwzgledne, bo ta strona wyswietla sie pod dowolnym nieistniejacym adresem. -->
   <link rel="stylesheet" href="/css/style.css?v=dev">
+  <!-- Link do klipu (/k/NUMER/) dla filmu, ktorego strona jeszcze nie ma w swoich danych (swiezo dodany), prowadzi na strone z otwartym filmem. -->
+  <script>var m=location.pathname.match(/^\/k\/(\d{15,25})\/?$/);if(m)location.replace("/?film="+m[1]);</script>
 </head>
 <body>
   <main class="nf">
