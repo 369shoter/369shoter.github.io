@@ -268,14 +268,25 @@
   const tiktokBase = (C.tiktok && C.tiktok.url) || "https://www.tiktok.com/";
   const videoUrl = (id) => tiktokBase.replace(/\/$/, "") + "/video/" + id;
 
+  /* Wiek filmu z jego numeru: pierwsze 32 bity numeru TikToka to czas utworzenia w sekundach (Unix).
+     Filmy z ostatnich newBadgeHours godzin dostaja znaczek "Nowe" (0 = wylaczone). */
+  const NEW_HOURS = Number.isFinite(C.newBadgeHours) ? C.newBadgeHours : 24;
+  const isNew = (id) => {
+    if (NEW_HOURS <= 0) return false;
+    const hours = (Date.now() / 1000 - Math.floor(Number(id) / 4294967296)) / 3600;
+    return hours >= -1 && hours <= NEW_HOURS;
+  };
+
   function videoCard(v, list) {
+    const fresh = isNew(v.id);
     const title = v.title || "Film";
     const img = el("img", { src: v.cover || "assets/covers/" + v.id + ".webp", alt: "", width: "360", height: "640", loading: "lazy", referrerpolicy: v.cover ? "no-referrer" : undefined });
     img.addEventListener("error", () => img.remove(), { once: true });
     const done = () => img.classList.add("is-loaded");
     if (img.complete && img.naturalWidth) done(); else img.addEventListener("load", done, { once: true });
-    const media = el("button", { class: "vcard-media", type: "button", "aria-label": "Odtwórz film: " + title, "data-id": v.id, "data-title": title }, [
+    const media = el("button", { class: "vcard-media", type: "button", "aria-label": "Odtwórz film: " + title + (fresh ? " (nowy)" : ""), "data-id": v.id, "data-title": title }, [
       img,
+      fresh ? el("span", { class: "vbadge", text: "Nowe" }) : null,
       el("span", { class: "play" }, [icon("play")]),
     ]);
     // rozmyty podglad (mikro-miniatura): tylko poprawny obraz webp w data: URI, ktory sami wygenerowalismy
@@ -306,6 +317,25 @@
       statsEl.append(el("div", { class: "stat" }, [el("dt", { text: s.label }), dd]));
     });
   }
+
+  /* ---------- Pasek do kolejnego progu obserwujacych ----------
+     "Do 5K obserwujacych brakuje 1,1K" plus pasek postepu i link do TikToka. Prog to najblizsza okragla wartosc powyzej
+     aktualnej liczby (lista nizej). Liczba jest ta sama co w statystykach, wiec na zywo z Workera albo z ostatniej publikacji.
+     config.js -> milestone: false wylacza. */
+  (function milestone() {
+    const box = $("#milestone");
+    const followers = live.followers;
+    if (!box || C.milestone === false || !Number.isInteger(followers) || followers <= 0) return;
+    const goal = [1e3, 2500, 5e3, 7500, 1e4, 15e3, 25e3, 5e4, 75e3, 1e5, 15e4, 25e4, 5e5, 75e4, 1e6].find((g) => g > followers);
+    if (!goal) return;
+    $("#milestone-text").append("Do ", el("b", { class: "hl", text: short(goal) }), " obserwujących brakuje ", el("b", { text: (goal - followers).toLocaleString("pl-PL", { useGrouping: "always" }) }));
+    const bar = $("#milestone-bar");
+    bar.setAttribute("aria-valuemax", String(goal));
+    bar.setAttribute("aria-valuenow", String(followers));
+    bar.setAttribute("aria-label", short(followers) + " z " + short(goal) + " obserwujących");
+    bar.style.setProperty("--p", Math.min(1, followers / goal).toFixed(4));
+    box.hidden = false;
+  })();
 
   function countUp(node) {
     const target = Number(node.dataset.target);
@@ -895,6 +925,7 @@
     mark(".header-socials [data-link=youtube]", "youtube-naglowek", "YouTube (nagłówek)");
     mark(".header-socials [data-link=discord]", "discord-naglowek", "Discord (nagłówek)");
     mark(".hero-cta [data-link=tiktok]", "tiktok-hero", "TikTok (przycisk na górze)");
+    mark("#milestone-cta", "tiktok-pasek-progu", "TikTok (pasek do progu)");
     mark(".tile-tiktok", "tiktok-kafelek", "TikTok (kafelek)");
     mark(".tile-ig", "instagram-kafelek", "Instagram (kafelek)");
     mark(".tile-yt", "youtube-kafelek", "YouTube (kafelek)");

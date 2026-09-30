@@ -250,6 +250,27 @@ ul { padding: 0; list-style: none; }
 .stat dt { order: 2; margin-top: 12px; color: var(--muted); font-size: clamp(13px, 1.5vw, 16px); line-height: 1.35; overflow-wrap: anywhere; }
 .stat { display: flex; flex-direction: column; min-width: 0; }
 
+/* ---------- Pasek do kolejnego progu obserwujacych (pod statystykami) ---------- */
+.milestone { margin-top: 20px; display: grid; gap: 10px; }
+.milestone[hidden] { display: none; }
+.milestone-head { display: flex; align-items: center; justify-content: space-between; gap: 4px 16px; flex-wrap: wrap; }
+.milestone-text { margin: 0; color: var(--muted); font-size: clamp(14px, 1.7vw, 17px); }
+.milestone-text b { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+.milestone-text b.hl { color: var(--accent-ink); }
+.milestone-cta {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px;
+  color: var(--accent-ink); font-weight: 600; font-size: 15px; text-decoration: none;
+}
+.milestone-cta .icon { transition: transform .3s var(--ease); }
+@media (hover: hover) { .milestone-cta:hover .icon { transform: translate(2px, -2px); } }
+.milestone-bar { position: relative; height: 10px; border-radius: var(--r-pill); background: var(--bg-elev-2); border: 1px solid var(--line); overflow: hidden; }
+.milestone-fill {
+  position: absolute; inset: 0; border-radius: inherit; transform-origin: left; transform: scaleX(0);
+  background: linear-gradient(90deg, #3aa71a, var(--accent));
+}
+.milestone.in .milestone-fill { transform: scaleX(var(--p, 0)); transition: transform 1.5s var(--ease) .35s; }
+@media (prefers-reduced-motion: reduce) { .milestone.in .milestone-fill { transition: none; } }
+
 /* ---------- Kafelki z linkami ---------- */
 .links .h2 { margin-bottom: clamp(28px, 4vw, 48px); }
 .bento { display: grid; gap: 14px; }
@@ -354,6 +375,14 @@ a.tile:active { transform: scale(.985); }
   border-radius: var(--r-card); border: 1px solid var(--line);
   background: var(--bg-elev-2);
   transition: transform .45s var(--ease), border-color .25s;
+}
+/* znaczek "Nowe" na klipach z ostatnich godzin (config.js -> newBadgeHours) */
+.vbadge {
+  position: absolute; z-index: 2; left: 10px; top: 10px; pointer-events: none;
+  padding: 5px 8px 4px; border-radius: var(--r-pill);
+  background: var(--accent); color: var(--on-accent);
+  font: 800 11px/1 var(--font-body); letter-spacing: .08em; text-transform: uppercase;
+  box-shadow: 0 6px 18px rgb(0 0 0 / .4);
 }
 .vcard-media img { position: relative; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .6s ease, transform .6s var(--ease); }
 .vcard-media img.is-loaded { opacity: 1; }

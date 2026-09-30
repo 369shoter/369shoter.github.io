@@ -6,7 +6,8 @@
    ustawienia strony, nie kod.
 
    Osobno (i bez hasla, bo to same publiczne dane) Worker oddaje stronie swieze liczby i liste filmow z TikToka pod /live:
-   patrz "Dane z TikToka na zywo" nizej. Nie wymaga zadnych sekretow.
+   patrz "Dane z TikToka na zywo" nizej. Nie wymaga zadnych sekretow. Przy okazji zapisuje w KV historie liczby obserwujacych
+   (co najmniej 3 godziny odstepu), ktora panel pokazuje jako wykres (GET /history, za haslem).
 
    Sekrety (Cloudflare -> Worker -> Settings -> Variables and Secrets), wszystkie typu "Secret":
      ADMIN_PASSWORD  haslo do panelu (min. 5 znakow)
@@ -418,6 +419,38 @@ async function fetchLive(env) {
   return parseLive(html);
 }
 
+/* ---------- Historia liczby obserwujacych (wykres w panelu) ----------
+   Przy kazdym swiezym pobraniu z TikToka (czyli gdy ktos wchodzi na strone) Worker dopisuje w KV punkt:
+   czas, obserwujacy, polubienia. Najwyzej jeden punkt na HIST_GAP_MS, wiec zapisow jest kilka na dobe
+   (limit darmowego KV: 1000 na dobe). Bez odwiedzin nie ma punktow, ale wtedy nic sie tez nie dzieje.
+   Panel czyta to przez /history (za haslem). Jeden klucz, ostatnie HIST_MAX punktow (ok. 100 dni). */
+const HIST_KEY = "hist";
+const HIST_MAX = 900;
+const HIST_GAP_MS = 3 * 3600e3;
+
+function histPoints(raw) {
+  const list = isObj(raw) && Array.isArray(raw.p) ? raw.p : [];
+  return list.filter((r) => Array.isArray(r) && Number.isInteger(r[0]) && Number.isInteger(r[1]) && Number.isInteger(r[2]) && r[1] > 0);
+}
+
+async function recordHistory(env, stats, nowMs) {
+  if (!env.KV || !stats) return;
+  try {
+    const raw = await env.KV.get(HIST_KEY, "json");
+    const points = histPoints(raw);
+    const last = points[points.length - 1];
+    if (last && nowMs - last[0] * 1000 < HIST_GAP_MS) return;
+    points.push([Math.floor(nowMs / 1000), stats.followers, stats.likes]);
+    await env.KV.put(HIST_KEY, JSON.stringify({ p: points.slice(-HIST_MAX) }));
+  } catch (_) { /* historia jest dodatkiem: jej blad nie moze zepsuc /live */ }
+}
+
+async function handleHistory(env) {
+  let raw = null;
+  try { raw = await env.KV.get(HIST_KEY, "json"); } catch (_) { return reply(env, { error: "Nie udało się odczytać historii." }, 502); }
+  return reply(env, { points: histPoints(raw).map(([t, followers, likes]) => ({ t, followers, likes })) });
+}
+
 async function handleLive(env, ctx) {
   const now = Date.now();
   let entry = liveMem && liveMem.until > now ? liveMem : null;
@@ -444,6 +477,10 @@ async function handleLive(env, ctx) {
     const ttl = ok ? LIVE_TTL_S : LIVE_FAIL_TTL_S;
     entry = { until: now + ttl * 1000, ok, body };
     liveMem = entry;
+    if (ok && body.stats) {
+      const rec = recordHistory(env, body.stats, now);
+      if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(rec); else await rec;
+    }
     if (cache) {
       const put = cache.put(key, new Response(JSON.stringify(body), {
         headers: { "content-type": "application/json", "cache-control": "public, max-age=" + ttl },
@@ -547,6 +584,10 @@ export default {
     if (url.pathname === "/overrides" && (request.method === "GET" || request.method === "PUT")) {
       if (!(await verifySession(env, request))) return reply(env, { error: "Sesja wygasła. Zaloguj się ponownie." }, 401);
       return handleOverrides(request, env);
+    }
+    if (url.pathname === "/history" && request.method === "GET") {
+      if (!(await verifySession(env, request))) return reply(env, { error: "Sesja wygasła. Zaloguj się ponownie." }, 401);
+      return handleHistory(env);
     }
     if (url.pathname === "/stats" && request.method === "GET") {
       if (!(await verifySession(env, request))) return reply(env, { error: "Sesja wygasła. Zaloguj się ponownie." }, 401);

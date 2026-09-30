@@ -73,6 +73,14 @@ W repozytorium są: `robots.txt`, `sitemap.xml` (data odświeżana przy każdej 
 kanoniczny, dane strukturalne (`ProfilePage` z linkami do TikToka, Instagrama i YouTube),
 `site.webmanifest` z ikonami oraz własna strona `404.html`.
 
+Przy każdej publikacji `scripts/inject_seo.py` dopisuje też do strony opis filmów w formacie schema.org
+(`VideoObject`: tytuł, okładka, data dodania, liczba wyświetleń, link do TikToka), w miejsce znacznika
+`<!--VIDEO_LD-->` w `index.html`. Pomijane są filmy ukryte w panelu i takie, które nie mają okładki. To pomaga
+Google zrozumieć, co jest na stronie, ale **nie gwarantuje** wyników z filmami: Google pokazuje je zwykle tylko
+dla stron, na których film jest główną treścią. Sprawdzisz, co Google widzi, w Search Console (raport „Filmy”)
+albo w https://search.google.com/test/rich-results. Podgląd linku (Discord, Messenger) bierze obraz z
+`assets/og.jpg` (okładki najlepszych filmów i logo); możesz go podmienić na inny plik 1200x630.
+
 Jednorazowo trzeba potwierdzić własność strony w Google Search Console:
 
 1. Wejdź na https://search.google.com/search-console i dodaj zasób typu **Prefiks adresu URL**:
@@ -90,6 +98,11 @@ dodać starsze filmy (samym linkiem) i ukryć wybrane filmy. Zapis publikuje str
 Po zalogowaniu panel pokazuje też **statystyki odwiedzin** (odwiedzający, dzienny wykres, kliknięcia w linki i filmy,
 źródła, kraje, urządzenia; 7 / 30 / 90 dni). Dane pobiera z GoatCountera Worker, a klucz (token *Read statistics*
 z menu użytkownika w GoatCounter -> API, sekret `GOATCOUNTER_TOKEN` w Cloudflare) nie trafia do przeglądarki. Jak to włączyć: krok 8 w [`worker/README.md`](worker/README.md).
+
+Kolejna karta to **Obserwujący**: wykres liczby obserwujących i polubień w czasie (7 / 30 / 90 dni), z przyrostem
+w wybranym okresie, dymkiem po najechaniu lub stuknięciu (na klawiaturze strzałki) i tabelą wartości. Punkty zapisuje Worker
+w KV przy wejściach na stronę, najwyżej jeden na 3 godziny (kilka zapisów na dobę, w darmowym limicie), więc wykres
+zaczyna się w dniu wgrania nowej wersji Workera i jest tym gęstszy, im więcej wejść.
 
 Ustawienia z panelu trafiają do `data/admin.js`, a to, co panel zmienia, ma pierwszeństwo przed
 `js/config.js`. Pole nietknięte w panelu nadal pochodzi z `config.js`.
@@ -149,6 +162,8 @@ Każdy efekt jest osobnym kawałkiem kodu, więc jeśli któryś Ci się nie spo
 | Karuzela filmów w stylu „coverflow” (telefon) | funkcja `coverflow` w `js/main.js` i blok „Telefon: karta przyciąga się do środka” w `css/style.css` |
 | Tło w klimacie CS2 (siatka, celownik, ziarno, dryfująca poświata) | sekcja „Tło w klimacie CS2” w `css/style.css` oraz `assets/grain.png` |
 | Zielone światło biegnące wokół bloku z tsxnine.pl | funkcja `partnerGlow` w `js/main.js` i reguły `.partner-ring`, `.partner-run`, `.partner-glow`, `.partner-run-soft` w `css/style.css` |
+| Znaczek „Nowe” na okładkach filmów z ostatnich 24 godzin | `newBadgeHours: 0` w `js/config.js` (godziny da się zmienić tą samą liczbą); wygląd: reguła `.vbadge` w `css/style.css` |
+| Pasek „Do 5K obserwujących brakuje…” pod statystykami | `milestone: false` w `js/config.js`; całkiem: blok `#milestone` w `index.html`, funkcja `milestone` w `js/main.js` i reguły `.milestone*` w `css/style.css` |
 | Rozmyty podgląd okładek przed załadowaniem | reguły `.vcard-media::before` i `.vcard-media img` (opacity) w `css/style.css`; skrypt `scripts/update_tiktok.py` może dalej zapisywać `lqip` w danych, nic to nie psuje |
 
 ## Animacje i ustawienie systemu „ogranicz ruch”
@@ -173,6 +188,9 @@ prosto na GitHubie (ikona ołówka).
 | E-mail do współpracy | `email` |
 | Co po kliknięciu w film: okno na stronie czy od razu TikTok | `videoMode` (`"player"` albo `"tiktok"`) |
 | Ile filmów w rankingu i w "Najnowsze" | `topCount`, `latestCount` |
+| Znaczek „Nowe” (po ilu godzinach znika, 0 = wyłączony) | `newBadgeHours` |
+| Pasek do kolejnego progu obserwujących | `milestone` (`false` wyłącza) |
+| Świeże dane z TikToka przy każdym wejściu (adres Workera) | `liveApi` (puste wyłącza) |
 | Starsze filmy do rankingu, własne tytuły | `videos` |
 | Duży blok na dole (strona streamera, dla którego robisz klipy) | `partner` (puste `url` chowa blok) |
 | Dodatkowe małe linki w stopce | `extraLinks` |
@@ -204,6 +222,7 @@ data/admin.js                    ustawienia zapisane przez panel admina
 admin/                           panel admina (index.html, admin.js, admin.css) i generator sekretów (setup.html)
 worker/                          serwer hasła dla panelu w Cloudflare (admin-api.js) i instrukcja
 scripts/update_tiktok.py         pobieranie danych z TikToka (także dla filmów dodanych w panelu)
+scripts/inject_seo.py            dane o filmach dla Google (schema.org), dopisywane przy publikacji
 .github/workflows/pages.yml      publikacja i odświeżanie danych (co 5 min)
 robots.txt, sitemap.xml, site.webmanifest, 404.html   widoczność w Google, ikona, strona błędu
 assets/                          awatar, okładki, czcionki, obraz podglądu linku

@@ -59,6 +59,8 @@ jobs:
           sed -i "s/?v=dev/?v=$(date -u +%Y%m%d%H%M)/g" _site/index.html _site/404.html _site/admin/index.html _site/admin/setup.html
           # data ostatniej zmiany w mapie strony
           sed -i "s/LASTMOD/$(date -u +%Y-%m-%d)/" _site/sitemap.xml
+          # dane o filmach dla Google (schema.org); gdy sie nie uda, strona i tak sie publikuje
+          python scripts/inject_seo.py _site || echo "::warning::Nie udalo sie dodac danych o filmach dla Google"
           grep -c '?v=2' _site/index.html
 
       - uses: actions/upload-pages-artifact@v3

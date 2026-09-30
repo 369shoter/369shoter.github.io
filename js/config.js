@@ -67,6 +67,13 @@ window.SITE_CONFIG = {
   // Puste "" wyłącza tę funkcję: strona pokazuje wtedy dane z ostatniej publikacji (patrz README).
   liveApi: "https://369-panel.369shoter.workers.dev/live",
 
+  // Filmy z ostatnich tylu godzin dostają na okładce zielony znaczek "Nowe". 0 wyłącza znaczek.
+  newBadgeHours: 24,
+
+  // Pasek pod statystykami: "Do 5K obserwujących brakuje 1,1K" z paskiem postępu i linkiem do TikToka.
+  // false wyłącza pasek.
+  milestone: true,
+
   // Co się dzieje po kliknięciu w film: "player" otwiera go w oknie na tej stronie,
   // "tiktok" od razu przenosi na TikToka (w nowej karcie, na telefonie zwykle do aplikacji).
   videoMode: "player",

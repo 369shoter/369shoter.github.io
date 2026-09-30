@@ -126,6 +126,10 @@ aktualny `admin-api.js` i kliknąć **Deploy**.
   `fetch("https://TWOJ-WORKER.workers.dev/live").then(r => r.json()).then(console.log)`.
   Powinieneś zobaczyć `ok: true`, liczbę obserwujących i listę filmów.
 - Wyłączenie: w `js/config.js` ustaw `liveApi: ""`.
+- Przy okazji Worker zapisuje w KV (to samo powiązanie `KV` co przy logowaniu) **historię liczby obserwujących**: punkt
+  (czas, obserwujący, polubienia) przy wejściu na stronę, najwyżej co 3 godziny, ostatnie 900 punktów (ok. 100 dni).
+  Panel pokazuje to jako wykres (`GET /history`, tylko po zalogowaniu). Bez odwiedzin nie ma nowych punktów. Nic nie
+  trzeba konfigurować, ale powiązanie KV musi być (patrz krok 5).
 - Nowy klip (jeszcze bez własnej okładki w repozytorium) pokazuje okładkę prosto z serwerów TikToka.
   Po najbliższej publikacji okładka trafia do strony na stałe.
 

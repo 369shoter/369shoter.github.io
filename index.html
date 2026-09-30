@@ -24,7 +24,12 @@
   <meta property="og:image" content="https://tymonekk.github.io/assets/og.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:alt" content="369_shoter: klipy z CS2, okładki najlepszych filmów i logo">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="369_shoter | Klipy z CS2">
+  <meta name="twitter:description" content="TikTok, Instagram, YouTube, Discord i najpopularniejsze filmy w jednym miejscu.">
+  <meta name="twitter:image" content="https://tymonekk.github.io/assets/og.jpg">
   <link rel="canonical" href="https://tymonekk.github.io/">
   <meta name="google-site-verification" content="fS7ynN_CwBSaURUG7IqNypu272OeQsYLBxunyIMdzog" />
   <link rel="manifest" href="site.webmanifest">
@@ -61,6 +66,9 @@
     }
   }
   </script>
+
+  <!-- Dane o filmach dla Google (schema.org VideoObject). Znacznik ponizej podmienia przy publikacji scripts/inject_seo.py -->
+  <!--VIDEO_LD-->
 
   <!-- Worker z danymi z TikToka na zywo (js/config.js -> liveApi): polaczenie nawiazujemy z wyprzedzeniem -->
   <link rel="preconnect" href="https://369-panel.369shoter.workers.dev">
@@ -163,6 +171,14 @@
     <section class="stats" aria-label="Statystyki konta">
       <div class="wrap">
         <dl class="stats-grid" id="stats" data-reveal></dl>
+        <!-- Pasek do kolejnego progu obserwujacych: wypelnia i pokazuje go js/main.js (config.js -> milestone) -->
+        <div class="milestone" id="milestone" hidden data-reveal>
+          <div class="milestone-head">
+            <p class="milestone-text" id="milestone-text"></p>
+            <a class="milestone-cta" id="milestone-cta" data-link="tiktok" href="https://www.tiktok.com/@369_shoter" target="_blank" rel="noopener">Obserwuj<svg class="icon"><use href="#i-arrow-up-right"/></svg></a>
+          </div>
+          <div class="milestone-bar" id="milestone-bar" role="progressbar" aria-valuemin="0"><span class="milestone-fill"></span></div>
+        </div>
       </div>
     </section>
 

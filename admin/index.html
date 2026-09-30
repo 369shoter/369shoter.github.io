@@ -85,6 +85,44 @@
       </div>
     </section>
 
+    <!-- 1c. Wzrost liczby obserwujacych (historie zapisuje Worker w KV, przy okazji wejsc na strone) -->
+    <section class="adm-card" id="growth" hidden>
+      <div class="adm-stats-head">
+        <h2 class="adm-h">Obserwujący</h2>
+        <div class="adm-seg" role="group" aria-label="Zakres wykresu obserwujących">
+          <button class="adm-seg-btn" type="button" data-gdays="7" aria-pressed="false">7 dni</button>
+          <button class="adm-seg-btn" type="button" data-gdays="30" aria-pressed="true">30 dni</button>
+          <button class="adm-seg-btn" type="button" data-gdays="90" aria-pressed="false">90 dni</button>
+        </div>
+      </div>
+      <p class="adm-p" id="growth-status" role="status"></p>
+      <p class="adm-error" id="growth-error" role="alert" hidden></p>
+      <div class="adm-stats-body" id="growth-body" hidden>
+        <div class="adm-kpis adm-kpis-2">
+          <div class="adm-kpi"><span class="adm-kpi-num" id="g-now">0</span><span class="adm-kpi-label">Obserwujących teraz</span></div>
+          <div class="adm-kpi"><span class="adm-kpi-num" id="g-delta">0</span><span class="adm-kpi-label" id="g-delta-label">Zmiana w tym okresie</span></div>
+          <div class="adm-kpi"><span class="adm-kpi-num" id="g-likes">0</span><span class="adm-kpi-label">Polubień teraz</span></div>
+          <div class="adm-kpi"><span class="adm-kpi-num" id="g-likes-delta">0</span><span class="adm-kpi-label">Zmiana polubień</span></div>
+        </div>
+        <p class="adm-p" id="growth-empty" hidden>Wykres dopiero zaczyna zbierać dane: punkt zapisuje się przy wejściach na stronę, najwyżej raz na 3 godziny. Po kilku punktach pojawi się linia.</p>
+        <div class="adm-chart adm-chart-line" id="growth-chart" role="img" aria-label="Liczba obserwujących w czasie" tabindex="0">
+          <div class="adm-chart-plot" id="growth-plot"></div>
+          <span class="adm-chart-y" id="growth-ymax"></span>
+          <span class="adm-chart-y adm-chart-ymin" id="growth-ymin"></span>
+          <div class="adm-cross" id="growth-cross" hidden><span class="adm-dot"></span></div>
+          <div class="adm-tip" id="growth-tip" hidden><b id="growth-tip-value"></b><span id="growth-tip-when"></span><span id="growth-tip-likes"></span></div>
+        </div>
+        <p class="adm-p adm-axis" id="growth-axis"></p>
+        <details class="adm-table">
+          <summary>Tabela wartości (po jednej na dzień)</summary>
+          <table><thead><tr><th scope="col">Dzień</th><th scope="col">Obserwujący</th><th scope="col">Polubienia</th></tr></thead><tbody id="growth-rows"></tbody></table>
+        </details>
+      </div>
+      <div class="adm-stats-foot">
+        <button class="btn btn-ghost btn-sm" type="button" id="growth-refresh">Odśwież</button>
+      </div>
+    </section>
+
     <!-- 2. Edytor (pokazywany dopiero po zalogowaniu) -->
     <form class="adm-editor" id="editor" hidden autocomplete="off" novalidate>
       <section class="adm-card">

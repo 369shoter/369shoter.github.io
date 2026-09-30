@@ -90,6 +90,13 @@
       if (!res.ok) throw new Error(serverMsg(json, "Nie udało się zapisać (" + res.status + ")."));
       if (typeof json.sha === "string") fileSha = json.sha;
     },
+    async history() {
+      const { res, json } = await workerCall("GET", "/history");
+      if (res.status === 401) throw new Expired();
+      if (res.status === 404) throw new Error("Serwer logowania w Cloudflare ma starszą wersję kodu bez historii obserwujących. Wgraj najnowszy plik worker/admin-api.js (Edit code -> Deploy), instrukcja w worker/README.md.");
+      if (!res.ok) throw new Error(serverMsg(json, "Nie udało się pobrać historii (" + res.status + ")."));
+      return json;
+    },
     async stats(days) {
       const { res, json } = await workerCall("GET", "/stats?days=" + days);
       if (res.status === 401) throw new Expired();
@@ -128,6 +135,10 @@
     statsSeq++;
     $("stats").hidden = true;
     $("stats-body").hidden = true;
+    growthSeq++;
+    growthPoints = [];
+    $("growth").hidden = true;
+    $("growth-body").hidden = true;
     $("editor").hidden = true;
     $("login").hidden = false;
     $("logout").hidden = true;
@@ -144,7 +155,7 @@
 
   /* ---------- statystyki (dane z GoatCountera pobiera Worker) ---------- */
   const SVG_NS = "http://www.w3.org/2000/svg";
-  const nf = (n) => Number(n || 0).toLocaleString("pl-PL");
+  const nf = (n) => Number(n || 0).toLocaleString("pl-PL", { useGrouping: "always" }); // "4 072", nie "4072" (pl domyslnie nie grupuje 4 cyfr)
   const int = (v) => (Number.isFinite(v) && v >= 0 ? Math.round(v) : 0);
   const str = (v, n = 80) => (typeof v === "string" ? v.slice(0, n) : "");
   const rows = (v) => (Array.isArray(v) ? v.filter((x) => x && typeof x === "object") : []);
@@ -265,6 +276,177 @@
     const b = document.querySelector("[data-days][aria-pressed=true]");
     return b ? Number(b.dataset.days) : 30;
   };
+
+  /* ---------- wzrost obserwujacych (historia zapisana przez Workera) ----------
+     Linia z wypelnieniem, celownik z dymkiem (mysz, dotyk i strzalki na klawiaturze) i tabela z wartosciami. */
+  let growthSeq = 0;
+  let growthPoints = [];     // [{t (sekundy), followers, likes}] od najstarszego
+  let growthView = null;     // to, co jest teraz narysowane: { pts, x, y } (pozycje 0..1)
+  let growthIdx = -1;
+
+  const sgn = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + nf(Math.abs(n));
+  const dayText = (sec) => new Date(sec * 1000).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit" });
+  const whenText = (sec) => new Date(sec * 1000).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  const growthDays = () => {
+    const b = document.querySelector("[data-gdays][aria-pressed=true]");
+    return b ? Number(b.dataset.gdays) : 30;
+  };
+  const svgEl = (name, attrs) => {
+    const n = document.createElementNS(SVG_NS, name);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  };
+
+  function renderGrowth() {
+    const all = growthPoints;
+    const hasLine = all.length >= 2;
+    $("growth-empty").hidden = hasLine;
+    $("growth-chart").hidden = !all.length;
+    $("growth-axis").hidden = !all.length;
+    hideTip();
+    growthView = null;
+    $("growth-plot").replaceChildren();
+    $("growth-rows").replaceChildren();
+    ["growth-ymax", "growth-ymin"].forEach((id) => { $(id).textContent = ""; });
+    if (!all.length) {
+      ["g-now", "g-delta", "g-likes", "g-likes-delta"].forEach((id) => { $(id).textContent = "–"; });
+      $("g-delta-label").textContent = "Zmiana w tym okresie";
+      return;
+    }
+
+    const last = all[all.length - 1];
+    const days = growthDays();
+    const from = last.t - days * 86400;
+    const pts = all.filter((p) => p.t >= from);
+    const before = all.filter((p) => p.t < from).pop();
+    const base = before || pts[0];
+
+    $("g-now").textContent = nf(last.followers);
+    $("g-likes").textContent = nf(last.likes);
+    const d = last.followers - base.followers, dl = last.likes - base.likes;
+    $("g-delta").textContent = sgn(d);
+    $("g-delta").classList.toggle("adm-delta-up", d > 0);
+    $("g-likes-delta").textContent = sgn(dl);
+    $("g-likes-delta").classList.toggle("adm-delta-up", dl > 0);
+    $("g-delta-label").textContent = before ? "Zmiana w ciągu " + days + " dni" : "Zmiana od " + dayText(pts[0].t) + " (tyle jest danych)";
+
+    // tabela: ostatnia wartosc z kazdego dnia, najnowsze na gorze
+    const perDay = new Map();
+    pts.forEach((p) => perDay.set(new Date(p.t * 1000).toLocaleDateString("sv-SE"), p));
+    [...perDay.entries()].reverse().forEach(([day, p]) => {
+      const tr = document.createElement("tr");
+      [day, nf(p.followers), nf(p.likes)].forEach((text) => { const td = document.createElement("td"); td.textContent = text; tr.append(td); });
+      $("growth-rows").append(tr);
+    });
+
+    if (!hasLine || pts.length < 2) {
+      $("growth-axis").textContent = "Pierwszy zapis: " + whenText(all[0].t) + ".";
+      return;
+    }
+
+    const t0 = pts[0].t, t1 = last.t;
+    const vals = pts.map((p) => p.followers);
+    const vmin = Math.min(...vals), vmax = Math.max(...vals);
+    const pad = (vmax - vmin || 1) * 0.1;
+    const lo = vmin - pad, hi = vmax + pad;
+    const W = 300, H = 100;
+    const X = (t) => (t1 === t0 ? 0 : (t - t0) / (t1 - t0));
+    const Y = (v) => 1 - (v - lo) / (hi - lo);
+    const line = pts.map((p, i) => (i ? "L" : "M") + (X(p.t) * W).toFixed(2) + "," + (Y(p.followers) * H).toFixed(2)).join(" ");
+    const svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none", "aria-hidden": "true" });
+    [vmax, vmin].forEach((v) => {
+      const y = (Y(v) * H).toFixed(2);
+      svg.append(svgEl("line", { class: "adm-grid", x1: 0, x2: W, y1: y, y2: y }));
+    });
+    svg.append(svgEl("path", { class: "adm-area", d: line + " L" + W + "," + H + " L0," + H + " Z" }));
+    svg.append(svgEl("path", { class: "adm-line", d: line }));
+    $("growth-plot").append(svg);
+
+    growthView = { pts, x: pts.map((p) => X(p.t)), y: pts.map((p) => Y(p.followers)) };
+    $("growth-ymax").textContent = nf(vmax);
+    $("growth-ymin").textContent = nf(vmin);
+    const plotH = $("growth-plot").clientHeight;
+    if (plotH) {
+      $("growth-ymax").style.top = Math.max(0, 14 + Y(vmax) * plotH - 9) + "px";
+      $("growth-ymin").style.top = "auto";
+      $("growth-ymin").style.bottom = Math.max(0, 14 + (1 - Y(vmin)) * plotH - 9) + "px";
+    }
+    $("growth-axis").textContent = whenText(t0) + " → " + whenText(t1) + ", zakres " + nf(vmin) + " – " + nf(vmax);
+  }
+
+  function hideTip() {
+    growthIdx = -1;
+    $("growth-cross").hidden = true;
+    $("growth-tip").hidden = true;
+  }
+
+  function showTip(i) {
+    if (!growthView) return;
+    i = Math.max(0, Math.min(growthView.pts.length - 1, i));
+    growthIdx = i;
+    const p = growthView.pts[i];
+    const box = $("growth-chart"), plot = $("growth-plot");
+    const left = plot.offsetLeft + growthView.x[i] * plot.clientWidth;
+    const cross = $("growth-cross");
+    cross.hidden = false;
+    cross.style.left = left + "px";
+    cross.querySelector(".adm-dot").style.top = growthView.y[i] * 100 + "%";
+    $("growth-tip-value").textContent = nf(p.followers) + " obserwujących";
+    $("growth-tip-when").textContent = whenText(p.t);
+    $("growth-tip-likes").textContent = nf(p.likes) + " polubień";
+    const tip = $("growth-tip");
+    tip.hidden = false;
+    const w = tip.offsetWidth;
+    tip.style.left = Math.max(6, Math.min(box.clientWidth - w - 6, left + 12 > box.clientWidth - w - 6 ? left - w - 12 : left + 12)) + "px";
+  }
+
+  function bindGrowthHover() {
+    const box = $("growth-chart");
+    const nearest = (clientX) => {
+      if (!growthView) return -1;
+      const plot = $("growth-plot").getBoundingClientRect();
+      const rel = (clientX - plot.left) / (plot.width || 1);
+      let best = 0, dist = Infinity;
+      growthView.x.forEach((x, i) => { const dd = Math.abs(x - rel); if (dd < dist) { dist = dd; best = i; } });
+      return best;
+    };
+    on(box, "pointermove", (e) => { const i = nearest(e.clientX); if (i >= 0) showTip(i); });
+    on(box, "pointerdown", (e) => { const i = nearest(e.clientX); if (i >= 0) showTip(i); });
+    on(box, "pointerleave", (e) => { if (e.pointerType !== "touch" && document.activeElement !== box) hideTip(); });
+    on(box, "focus", () => { if (growthView) showTip(growthView.pts.length - 1); });
+    on(box, "blur", hideTip);
+    on(box, "keydown", (e) => {
+      if (!growthView) return;
+      const step = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
+      if (e.key === "Home") { e.preventDefault(); showTip(0); }
+      else if (e.key === "End") { e.preventDefault(); showTip(growthView.pts.length - 1); }
+      else if (step) { e.preventDefault(); showTip((growthIdx < 0 ? growthView.pts.length - 1 : growthIdx) + step); }
+      else if (e.key === "Escape") hideTip();
+    });
+  }
+
+  async function loadGrowth() {
+    const seq = ++growthSeq;
+    showError($("growth-error"), "");
+    $("growth-status").textContent = "Ładuję…";
+    try {
+      const data = await backend.history();
+      if (seq !== growthSeq || !token) return;
+      growthPoints = rows(data.points)
+        .map((p) => ({ t: int(p.t), followers: int(p.followers), likes: int(p.likes) }))
+        .filter((p) => p.t > 0 && p.followers > 0)
+        .sort((a, b) => a.t - b.t);
+      renderGrowth();
+      $("growth-body").hidden = false;
+    } catch (e) {
+      if (seq !== growthSeq || !token) return;
+      if (e instanceof Expired) return lock("Sesja wygasła. Zaloguj się ponownie.");
+      $("growth-body").hidden = true;
+      showError($("growth-error"), e.message || "Nie udało się pobrać historii.");
+    } finally {
+      if (seq === growthSeq) $("growth-status").textContent = "";
+    }
+  }
 
   /* ---------- formularz ---------- */
   const val = (id) => $(id).value.trim();
@@ -460,6 +642,8 @@
       $("login").hidden = true;
       $("stats").hidden = false;
       loadStats(currentDays());
+      $("growth").hidden = false;
+      loadGrowth();
       $("editor").hidden = false;
       $("logout").hidden = false;
       setStatus(loggedStatus());
@@ -483,6 +667,12 @@
   }).catch((e) => showError($("login-error"), e.message));
   document.querySelectorAll("[data-days]").forEach((b) => on(b, "click", () => loadStats(Number(b.dataset.days))));
   on($("stats-refresh"), "click", () => loadStats(currentDays()));
+  document.querySelectorAll("[data-gdays]").forEach((b) => on(b, "click", () => {
+    document.querySelectorAll("[data-gdays]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    renderGrowth();
+  }));
+  on($("growth-refresh"), "click", loadGrowth);
+  bindGrowthHover();
   {
     const code = CFG.analytics && CFG.analytics.goatcounter;
     if (typeof code === "string" && /^[a-z0-9-]{2,40}$/.test(code)) $("stats-link").href = "https://" + code + ".goatcounter.com";
