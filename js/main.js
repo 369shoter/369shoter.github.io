@@ -261,8 +261,20 @@
   // Gdy Worker nie odpowiedzial w porzadku (freshData puste), zakladamy, ze podglad dziala.
   const workerHasPreviews = !freshData || freshData.previews;
   const idDesc = (a, b) => (b.id.length - a.id.length) || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
+  const publishedIds = new Set((STATIC_DATA.videos || []).map((v) => v.id)); // filmy z ostatniej publikacji strony
+  /* Kiedy film wyszedl na TikToku (sekundy, Unix). Numer filmu mowi tylko, kiedy go wgrano, a zaplanowany post wychodzi pozniej
+     (nawet o dni), wiec liczy sie prawdziwa godzina publikacji "t", ktora scripts/update_tiktok.py czyta ze strony filmu.
+     Film, ktorego nie bylo na liscie przy ostatnim odswiezeniu danych (STATIC_DATA.at), a przyszedl z danymi na zywo,
+     wyszedl po tym odswiezeniu, wiec liczymy co najmniej od tej chwili. */
+  const listAt = Number(STATIC_DATA.at) || 0;
+  const publishedAt = (v) => {
+    if (Number.isFinite(v.t) && v.t > 0) return v.t;
+    const uploaded = Math.floor(Number(v.id) / 4294967296); // pierwsze 32 bity numeru: chwila wgrania
+    return listAt && !publishedIds.has(v.id) ? Math.max(uploaded, listAt) : uploaded;
+  };
+  const newestFirst = (a, b) => (publishedAt(b) - publishedAt(a)) || idDesc(a, b);
   const pool = new Map();
-  (D.videos || []).forEach((v) => pool.set(v.id, { id: v.id, title: v.title, views: v.views, lqip: v.lqip, cover: v.cover }));
+  (D.videos || []).forEach((v) => pool.set(v.id, { id: v.id, title: v.title, views: v.views, lqip: v.lqip, cover: v.cover, t: v.t }));
   (C.videos || []).forEach((v) => {
     const known = pool.get(v.id) || {};
     // tytul z config.js ma pierwszenstwo, liczba wyswietlen: wieksza z dwoch (rosna tylko w gore)
@@ -274,22 +286,22 @@
     .slice()
     .sort((a, b) => (b.views || 0) - (a.views || 0))
     .slice(0, C.topCount || 6);
-  const latestVideos = allVideos.slice().sort(idDesc).slice(0, C.latestCount || 4);
+  const latestVideos = allVideos.slice().sort(newestFirst).slice(0, C.latestCount || 4);
 
   const tiktokBase = (C.tiktok && C.tiktok.url) || "https://www.tiktok.com/";
   const videoUrl = (id) => tiktokBase.replace(/\/$/, "") + "/video/" + id;
 
-  /* Wiek filmu z jego numeru: pierwsze 32 bity numeru TikToka to czas utworzenia w sekundach (Unix).
-     Filmy z ostatnich newBadgeHours godzin dostaja znaczek "Nowe" (0 = wylaczone). */
+  /* Filmy opublikowane w ostatnich newBadgeHours godzinach (liczone od publikacji, patrz publishedAt) dostaja znaczek "Nowe"
+     (0 = wylaczone). */
   const NEW_HOURS = Number.isFinite(C.newBadgeHours) ? C.newBadgeHours : 24;
-  const isNew = (id) => {
+  const isNew = (v) => {
     if (NEW_HOURS <= 0) return false;
-    const hours = (Date.now() / 1000 - Math.floor(Number(id) / 4294967296)) / 3600;
+    const hours = (Date.now() / 1000 - publishedAt(v)) / 3600;
     return hours >= -1 && hours <= NEW_HOURS;
   };
 
   function videoCard(v, list) {
-    const fresh = isNew(v.id);
+    const fresh = isNew(v);
     const title = v.title || "Film";
     const img = el("img", { src: v.cover || "assets/covers/" + v.id + ".webp", alt: "", width: "360", height: "640", loading: "lazy", referrerpolicy: v.cover ? "no-referrer" : undefined });
     img.addEventListener("error", () => img.remove(), { once: true });
@@ -559,7 +571,6 @@
      filmem. Dla filmow z opublikowanej listy to adres na tej samej domenie (strona/k/NUMER/), dla swiezo dodanych adres Workera
      (/k/NUMER, gdy Worker to umie), a bez Workera zwykly adres strony z ?film=NUMER (bez osobnego podgladu). */
   const shareBase = typeof C.liveApi === "string" && workerHasPreviews ? C.liveApi.replace(/\/live\/?$/, "") : "";
-  const publishedIds = new Set((STATIC_DATA.videos || []).map((v) => v.id));
   const shareUrl = (id) => {
     // film z opublikowanej listy ma swoja strone z podgladem na tej samej domenie (strona/k/NUMER/, robi ja scripts/make_share_pages.py)
     if (publishedIds.has(id)) return new URL("k/" + id + "/", location.href).href;
@@ -1037,7 +1048,7 @@
     if (C.videoMode === "tiktok") { location.replace(videoUrl(id)); return; }
     const known = pool.get(id);
     const v = known || { id, title: "Film" };
-    const list = allVideos.slice().sort(idDesc);
+    const list = allVideos.slice().sort(newestFirst);
     if (!known) list.unshift(v);
     const open = () => {
       openPlayer(v, list);

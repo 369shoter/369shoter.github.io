@@ -36,9 +36,10 @@ def read_js_object(path, variable):
     return data if isinstance(data, dict) else {}
 
 
-def upload_date(video_id):
-    """Pierwsze 32 bity numeru filmu na TikToku to czas jego utworzenia (sekundy, Unix)."""
-    return datetime.datetime.fromtimestamp(int(video_id) >> 32, datetime.timezone.utc).isoformat()
+def upload_date(video):
+    """Godzina publikacji z danych ("t", ze strony filmu), a bez niej czas wgrania z numeru filmu (pierwsze 32 bity)."""
+    t = video.get("t") if isinstance(video.get("t"), int) else int(video["id"]) >> 32
+    return datetime.datetime.fromtimestamp(t, datetime.timezone.utc).isoformat()
 
 
 def safe_json(obj):
@@ -77,7 +78,7 @@ def build(site):
             "name": title,
             "description": title + ("" if title[-1] in ".!?…" else ".") + f" Klip z CS2 od {TIKTOK_USER}.",
             "thumbnailUrl": [f"{base}/assets/covers/{vid}.webp"],
-            "uploadDate": upload_date(vid),
+            "uploadDate": upload_date({**v, "id": vid}),
             "embedUrl": f"https://www.tiktok.com/player/v1/{vid}",
             "url": f"https://www.tiktok.com/@{TIKTOK_USER}/video/{vid}",
             "author": {"@type": "Person", "name": TIKTOK_USER, "url": base + "/"},

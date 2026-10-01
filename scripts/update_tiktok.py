@@ -5,6 +5,8 @@ Co robi:
   - czyta liczbę obserwujących i polubień z publicznego profilu,
   - czyta listę ostatnich filmów (z liczbą wyświetleń) z publicznego embedu profilu,
   - pobiera okładki nowych filmów do assets/covers/ (potrzebny Pillow),
+  - dla świeżych filmów czyta ze strony filmu prawdziwą godzinę publikacji (pole "t"; zaplanowany post
+    wychodzi później, niż mówi numer filmu, który oznacza chwilę wgrania),
   - zapisuje wszystko do data/tiktok.js, które wczytuje strona.
 
 Skrypt nigdy nie psuje strony: jeśli TikTok nie odpowie albo zwróci dziwne dane,
@@ -27,6 +29,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 USER = "369_shoter"
 DATA_FILE = ROOT / "data" / "tiktok.js"
 COVERS = ROOT / "assets" / "covers"
+PUBLISH_LOOKBACK_DAYS = 30  # godzine publikacji sprawdzamy tylko u filmow wgranych w tylu ostatnich dniach
+PUBLISH_FETCH_MAX = 12      # najwyzej tyle stron filmow na jedno odswiezenie (reszta przy nastepnym)
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -209,6 +213,24 @@ def fetch_video_info(vid):
     return info
 
 
+def id_time(vid):
+    """Chwila wgrania filmu (Unix): pierwsze 32 bity jego numeru."""
+    return int(vid) >> 32
+
+
+def fetch_publish_time(vid):
+    """Prawdziwa godzina publikacji filmu (Unix) z jego strony na TikToku. Przy zaplanowanym poscie jest pozniejsza
+    (nawet o kilka dni) niz chwila wgrania zapisana w numerze filmu."""
+    page = fetch(f"https://www.tiktok.com/@{USER}/video/{vid}", tries=2)
+    item = script_json(page, "__UNIVERSAL_DATA_FOR_REHYDRATION__")["__DEFAULT_SCOPE__"]["webapp.video-detail"]["itemInfo"]["itemStruct"]
+    if str(item.get("id")) != vid:
+        raise RuntimeError("strona pokazala inny film")
+    t = int(item.get("createTime") or 0)
+    if not id_time(vid) - 300 <= t <= time.time() + 600:
+        raise RuntimeError(f"dziwna godzina publikacji {t}")
+    return t
+
+
 def read_previous():
     if not DATA_FILE.exists():
         return {}
@@ -219,6 +241,8 @@ def read_previous():
 def main():
     previous = read_previous()
     result = {"stats": previous.get("stats", {}), "videos": previous.get("videos", [])}
+    if isinstance(previous.get("at"), int):
+        result["at"] = previous["at"]
     changed = False
 
     stats = None
@@ -262,6 +286,10 @@ def main():
                     warn(f"film {vid} z panelu nie pobrany ({exc})")
                 time.sleep(0.4)
             result["videos"] = []
+            prev_by_id = {v["id"]: v for v in previous.get("videos", [])}
+            prev_at = previous.get("at") if isinstance(previous.get("at"), int) else 0
+            recent = time.time() - PUBLISH_LOOKBACK_DAYS * 86400
+            lookups = 0
             for v in sorted(merged.values(), key=lambda x: int(x["id"]), reverse=True):
                 if not v.get("_cover") and not (COVERS / f"{v['id']}.webp").exists():
                     # znany film, ktory wypadl z listy embedu, a jego okladki nie ma w repozytorium
@@ -276,7 +304,26 @@ def main():
                     item["lqip"] = lqip
                 if v.get("extra"):
                     item["extra"] = True
+                # godzina publikacji: znana z poprzednich odswiezen albo ze strony filmu (tylko swieze filmy)
+                old = prev_by_id.get(v["id"], {})
+                t, guess = old.get("t"), bool(old.get("tGuess"))
+                if (not t or guess) and lookups < PUBLISH_FETCH_MAX and id_time(v["id"]) > recent:
+                    lookups += 1
+                    try:
+                        t, guess = fetch_publish_time(v["id"]), False
+                        time.sleep(0.4)
+                    except Exception as exc:  # noqa: BLE001 - bez tej godziny strona liczy od numeru filmu
+                        print(f"  godzina publikacji {v['id']} nieznana ({exc})")
+                        lookups = PUBLISH_FETCH_MAX  # TikTok nie oddaje stron filmow: nie probuj reszty w tym przebiegu
+                if not t and v["id"] not in prev_by_id and prev_at and recent < id_time(v["id"]) < prev_at:
+                    # nowy na liscie, choc wgrany przed poprzednim odswiezeniem: zaplanowany, wyszedl po nim
+                    t, guess = prev_at, True
+                if isinstance(t, int) and t > 0:
+                    item["t"] = t
+                    if guess:
+                        item["tGuess"] = True  # przyblizona; przy nastepnym odswiezeniu sprobujemy ja doczytac
                 result["videos"].append(item)
+            result["at"] = int(time.time())  # chwila, w ktorej lista filmow byla aktualna (main.js liczy od niej nowe filmy)
             changed = True
             print(f"filmy: {len(videos)} z embedu, {len(extras)} z panelu, {len(result['videos'])} razem")
         else:
