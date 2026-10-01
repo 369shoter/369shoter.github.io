@@ -274,24 +274,24 @@ ul { padding: 0; list-style: none; }
   background: var(--bg-elev); /* zapas dla przegladarek bez color-mix */
   background: radial-gradient(70% 130% at 100% 0%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 62%), var(--bg-elev);
 }
-/* tekst obok okladki: na gorze duzy zielony napis i bialy tytul, na dole (rowno z dolem okladki) wyswietlenia i przyciski */
+/* tekst obok okladki, od gory: duzy zielony napis, bialy tytul, wyswietlenia i przyciski */
 .weekly-body { min-width: 0; display: flex; flex-direction: column; container-type: inline-size; }
 /* "KLIP TYGODNIA" na cala szerokosc kolumny: rozmiar liczony od jej szerokosci (cqi), zapas w vw dla starszych przegladarek */
 .weekly-kicker {
   color: var(--accent-ink); white-space: nowrap; text-transform: uppercase; letter-spacing: -.005em;
-  font: 900 clamp(30px, 9.6vw, 128px)/.84 var(--font-display);
+  font: 900 clamp(30px, 9.6vw, 84px)/.84 var(--font-display);
   text-shadow: 0 0 .35em color-mix(in srgb, var(--accent) 35%, transparent);
 }
-@supports (font-size: 1cqi) { .weekly-kicker { font-size: 18.4cqi; } }
+@supports (font-size: 1cqi) { .weekly-kicker { font-size: min(18.4cqi, 84px); } } /* na komputerze najwyzej 84 px */
 .weekly-title { margin-top: .32em; font: 900 clamp(34px, 5.6vw, 80px)/.9 var(--font-display); text-transform: uppercase; letter-spacing: -.005em; overflow-wrap: anywhere; }
-.weekly-meta { margin-top: auto; padding-top: 18px; color: var(--muted); font-size: clamp(15px, 1.7vw, 19px); }
+.weekly-meta { margin-top: 18px; color: var(--muted); font-size: clamp(15px, 1.7vw, 19px); }
 .weekly-meta b { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
 .weekly-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: clamp(16px, 2.4vw, 24px); }
 /* telefon: okladka obok tekstu, przyciski jeden pod drugim */
 @media (max-width: 599px) {
   .weekly-card { grid-template-columns: minmax(0, 44%) minmax(0, 1fr); gap: 14px; }
   .weekly-title { font-size: clamp(24px, 7.4vw, 34px); }
-  .weekly-meta { padding-top: 10px; font-size: 14px; }
+  .weekly-meta { margin-top: 10px; font-size: 14px; }
   .weekly-actions { flex-direction: column; gap: 8px; margin-top: 12px; }
   .weekly-actions .btn { width: 100%; padding-inline: 12px; }
 }
