@@ -185,6 +185,24 @@
       </div>
     </section>
 
+    <!-- Klip tygodnia: najczesciej ogladany klip z ostatnich 7 dni. Wypelnia i pokazuje go js/main.js (config.js -> weeklyClip) -->
+    <section class="weekly" id="klip-tygodnia" aria-labelledby="weekly-title" hidden>
+      <div class="wrap">
+        <div class="weekly-card" data-reveal>
+          <div class="weekly-media" id="weekly-media"></div>
+          <div class="weekly-body">
+            <p class="weekly-kicker">Klip tygodnia</p>
+            <h2 class="weekly-title" id="weekly-title">Klip tygodnia</h2>
+            <p class="weekly-meta" id="weekly-meta"></p>
+            <div class="weekly-actions">
+              <button class="btn btn-primary btn-sm" id="weekly-play" type="button"><svg class="icon"><use href="#i-play"/></svg>Odtwórz</button>
+              <a class="btn btn-ghost btn-sm" id="weekly-tiktok" href="https://www.tiktok.com/@369_shoter" target="_blank" rel="noopener"><svg class="icon"><use href="#i-tiktok"/></svg>Na TikToku</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="links section" id="linki">
       <div class="wrap">
         <h2 class="h2" data-reveal><span class="wipe">Znajdź mnie</span></h2>

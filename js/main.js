@@ -454,6 +454,33 @@
     });
   }
 
+  /* ---------- Klip tygodnia ----------
+     Najczesciej ogladany klip opublikowany w ostatnich 7 dniach (liczone od publikacji, patrz publishedAt), duzy pod
+     statystykami: okladka (jak w kartach filmow), tytul, "310K wyswietlen w 3 dni" i przyciski. Gdy w tym tygodniu nie bylo
+     klipow, sekcja zostaje ukryta. config.js -> weeklyClip: false wylacza. */
+  (function weeklyClip() {
+    const section = $("#klip-tygodnia");
+    if (!section || C.weeklyClip === false) return;
+    const now = Date.now() / 1000;
+    const week = allVideos.filter((v) => (v.views || 0) > 0 && now - publishedAt(v) <= 7 * 86400);
+    if (!week.length) return;
+    const v = week.reduce((best, x) => (x.views > best.views ? x : best));
+    const list = allVideos.slice().sort(newestFirst);
+    $("#weekly-media").append(videoCard(v, list).querySelector(".vcard-media"));
+    $("#weekly-title").textContent = v.title || "Film";
+    // wiek klipu zaokraglony w gore: "w 3 dni" dla klipu sprzed 2,5 dnia (wyswietlenia padly w tym czasie)
+    const hours = Math.max(1, Math.ceil((now - publishedAt(v)) / 3600));
+    const days = Math.ceil(hours / 24);
+    const few = (n) => n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14);
+    const age = hours < 24
+      ? hours + " " + (hours === 1 ? "godzinę" : few(hours) ? "godziny" : "godzin")
+      : days + " " + (days === 1 ? "dzień" : "dni");
+    $("#weekly-meta").append(el("b", { text: short(v.views) }), document.createTextNode(" wyświetleń w " + age));
+    $("#weekly-play").addEventListener("click", () => openPlayer(v, list));
+    $("#weekly-tiktok").href = videoUrl(v.id);
+    section.hidden = false;
+  })();
+
   /* ---------- Hero: okladki losowane sposrod 6 najlepszych filmow ----------
      Przy kazdym wejsciu (i odswiezeniu) losujemy 3 z 6 najczesciej ogladanych. Potem sie nie zmieniaja.
      Klikniecie w okladke otwiera ten film w odtwarzaczu (albo na TikToku, zaleznie od videoMode); lista do przewijania
@@ -1020,6 +1047,8 @@
     mark("#discord-copy, #discord.is-copy", "discord-kopiuj-nick", "Discord (skopiowanie nicku)");
     mark("#discord-hit", "discord-zaproszenie", "Discord (zaproszenie na serwer)");
     mark("#partner-link", "partner", "Strona streamera (blok na dole)");
+    mark("#weekly-play, #weekly-media .vcard-media", "klip-tygodnia-odtworz", "Klip tygodnia: odtworzenie");
+    mark("#weekly-tiktok", "klip-tygodnia-tiktok", "Klip tygodnia: TikTok");
     mark(".vcard-more", "tiktok-wszystkie-filmy", "TikTok (Wszystkie filmy)");
     mark("#player-link, #player-fallback-link", "film-otworz-tiktok", "Film otwarty na TikToku");
     mark("#player-share", "film-kopiuj-link", "Film: skopiowanie linku");

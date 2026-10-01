@@ -70,6 +70,10 @@ window.SITE_CONFIG = {
   // Puste "" wyłącza tę funkcję: strona pokazuje wtedy dane z ostatniej publikacji (patrz README).
   liveApi: "https://369-panel.369shoter.workers.dev/live",
 
+  // "Klip tygodnia" pod statystykami: najczęściej oglądany klip opublikowany w ostatnich 7 dniach.
+  // Sam się chowa, gdy w tym tygodniu nie było klipów. false wyłącza.
+  weeklyClip: true,
+
   // Filmy z ostatnich tylu godzin dostają na okładce zielony znaczek "Nowe". 0 wyłącza znaczek.
   newBadgeHours: 24,
 
