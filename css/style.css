@@ -275,8 +275,8 @@ ul { padding: 0; list-style: none; }
   background: radial-gradient(70% 130% at 100% 0%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 62%), var(--bg-elev);
 }
 .weekly-body { min-width: 0; padding-block: 8px; }
-.weekly-kicker { display: inline-flex; align-items: center; gap: 10px; color: var(--accent-ink); font: 800 13px/1 var(--font-body); letter-spacing: .14em; text-transform: uppercase; }
-.weekly-kicker::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+.weekly-kicker { display: inline-flex; align-items: center; gap: .55em; color: var(--accent-ink); font: 800 clamp(16px, 2vw, 24px)/1 var(--font-body); letter-spacing: .12em; text-transform: uppercase; }
+.weekly-kicker::before { content: ""; flex: none; width: .5em; height: .5em; border-radius: 50%; background: var(--accent); box-shadow: 0 0 .8em var(--accent); }
 .weekly-title { margin-top: 16px; font: 900 clamp(34px, 5.6vw, 80px)/.9 var(--font-display); text-transform: uppercase; letter-spacing: -.005em; overflow-wrap: anywhere; }
 .weekly-meta { margin-top: 18px; color: var(--muted); font-size: clamp(15px, 1.7vw, 19px); }
 .weekly-meta b { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
