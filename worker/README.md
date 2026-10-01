@@ -13,7 +13,7 @@ Co to daje względem logowania samym tokenem GitHub:
 - Ten sam kod 2FA nie zadziała drugi raz, a sesja wygasa po 20 minutach (i po 10 minutach bezczynności).
 - Serwer sam jeszcze raz sprawdza wszystko, co panel zapisuje (tylko znane pola, tylko adresy `https`,
   limity długości), więc zapis idzie wyłącznie do pliku `data/admin.js`.
-- Odpowiada wyłącznie na zapytania ze strony `https://tymonekk.github.io` (CORS i sprawdzanie `Origin`).
+- Odpowiada wyłącznie na zapytania ze strony `https://369shoter.github.io` (CORS i sprawdzanie `Origin`).
 
 Koszt: 0 zł (plan darmowy: 100 000 zapytań dziennie, a panel zużywa kilka).
 
@@ -35,7 +35,7 @@ Nazwy przycisków w Cloudflare czasem się zmieniają, ale kolejność jest taka
 
 ### 2. Wygeneruj sekrety
 
-1. Otwórz https://tymonekk.github.io/admin/setup.html i kliknij **Wygeneruj nowe sekrety**.
+1. Otwórz https://369shoter.github.io/admin/setup.html i kliknij **Wygeneruj nowe sekrety**.
    Strona działa tylko w Twojej przeglądarce i niczego nie wysyła ani nie zapisuje.
 2. Zapisz trzy wartości w menedżerze haseł (albo w notatce, którą potem usuniesz): hasło do panelu,
    klucz sesji, klucz 2FA.
@@ -49,10 +49,12 @@ Nazwy przycisków w Cloudflare czasem się zmieniają, ale kolejność jest taka
 To on pozwala Workerowi zapisać plik z ustawieniami w repozytorium.
 
 1. https://github.com/settings/personal-access-tokens/new
-2. **Repository access** -> **Only select repositories** -> tylko `tymonekk.github.io`.
+2. **Resource owner** -> organizacja `369shoter` (nie Twoje konto: repozytorium strony należy do organizacji).
+   **Repository access** -> **Only select repositories** -> tylko `369shoter.github.io`.
 3. **Repository permissions** -> **Contents** -> **Read and write** (nic więcej).
 4. Ważność: maksymalna dozwolona (do roku). Ustaw sobie przypomnienie, żeby go odnowić.
 5. Wygeneruj i skopiuj token (zaczyna się od `github_pat_`). Pokazuje się tylko raz.
+6. Jeśli przy tokenie widać „pending” (czeka na zgodę), zatwierdź go w organizacji: https://github.com/organizations/369shoter/settings/personal-access-token-requests
 
 ### 4. Utwórz Workera
 
@@ -89,7 +91,7 @@ Kliknij **Deploy**, żeby sekrety zaczęły działać. Bez `TOTP_SECRET` panel w
    wszystko, co nie przychodzi z Twojej strony.
 2. Adres Workera jest wpisany w panelu w dwóch miejscach: stała `WORKER` w `admin/admin.js` i ten sam adres
    w `connect-src` w `admin/index.html`. Jeśli kiedyś zmienisz nazwę Workera, zmień oba.
-3. `https://tymonekk.github.io/admin/` pyta o hasło i kod 2FA.
+3. `https://369shoter.github.io/admin/` pyta o hasło i kod 2FA.
 
 ### 8. Statystyki odwiedzin w panelu (opcjonalnie)
 
@@ -125,9 +127,9 @@ aktualny `admin-api.js` i kliknąć **Deploy**.
 - Sprawdzisz to w przeglądarce: otwórz Konsolę na swojej stronie i wpisz
   `fetch("https://TWOJ-WORKER.workers.dev/live").then(r => r.json()).then(console.log)`.
   Powinieneś zobaczyć `ok: true`, liczbę obserwujących i listę filmów.
-- **Podgląd linku do klipu dla świeżo dodanych filmów:** filmy z opublikowanej listy mają własne strony na `tymonekk.github.io/k/NUMER/` (robi je `scripts/make_share_pages.py` przy publikacji). Dla filmu, którego ta lista jeszcze nie zna, strona kopiuje adres Workera. Ten sam Worker oddaje publiczny adres `/k/NUMER_FILMU` (np. `https://TWOJ-WORKER.workers.dev/k/7691066909055388961`).
+- **Podgląd linku do klipu dla świeżo dodanych filmów:** filmy z opublikowanej listy mają własne strony na `369shoter.github.io/k/NUMER/` (robi je `scripts/make_share_pages.py` przy publikacji). Dla filmu, którego ta lista jeszcze nie zna, strona kopiuje adres Workera. Ten sam Worker oddaje publiczny adres `/k/NUMER_FILMU` (np. `https://TWOJ-WORKER.workers.dev/k/7691066909055388961`).
   To strona z znacznikami `og:` (tytuł, wyświetlenia, obraz), z których korzystają Discord, Messenger i podobne. Człowieka od razu
-  przenosi na `https://tymonekk.github.io/?film=NUMER`. Przycisk **Kopiuj link** w odtwarzaczu kopiuje właśnie ten adres. Obraz bierze ze strony
+  przenosi na `https://369shoter.github.io/?film=NUMER`. Przycisk **Kopiuj link** w odtwarzaczu kopiuje właśnie ten adres. Obraz bierze ze strony
   (`assets/og/NUMER.jpg`, robi go `scripts/make_previews.py`), a gdy go jeszcze nie ma, okładkę z TikToka. Adres jest publiczny, ale nie robi nic
   poza odczytem publicznych danych, a liczba zapytań do TikToka jest ograniczona (20 na minutę, wyniki w pamięci na 10 minut). Możesz go sprawdzić
   wklejając link klipu w rozmowie na Discordzie (Discord czasem trzyma stary podgląd kilka minut).

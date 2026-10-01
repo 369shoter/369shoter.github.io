@@ -10,11 +10,15 @@ i bez kosztów.
 2. W polu **Build and deployment** -> **Source** wybierz **GitHub Actions**.
 3. Wejdź w zakładkę **Actions**, wybierz **Publikacja strony** i kliknij **Run workflow**
    (albo poczekaj: strona publikuje się też sama po każdej zmianie i co kilka minut).
-4. Po minucie strona jest pod adresem `https://tymonekk.github.io/`.
+4. Po minucie strona jest pod adresem `https://369shoter.github.io/`.
 
 Hosting i adres `github.io` są darmowe. Adres bez dopisku po ukośniku działa dlatego, że
-repozytorium nazywa się dokładnie `tymonekk.github.io`. Przy każdej innej nazwie strona
-byłaby pod `https://tymonekk.github.io/nazwa-repozytorium/`.
+repozytorium należy do darmowej organizacji `369shoter` (konto `tymonekk` jest jej właścicielem i nie zmienia
+nazwy) i nazywa się dokładnie `369shoter.github.io`. Przy każdej innej nazwie strona byłaby pod
+`https://369shoter.github.io/nazwa-repozytorium/`.
+
+Stary adres `https://tymonekk.github.io/` przenosi na nowy (z zachowaniem reszty adresu, np. `?film=...`).
+Robi to osobne repozytorium `tymonekk/tymonekk.github.io` z dwoma plikami z folderu [`redirect/`](redirect/).
 
 ### Własny, ładniejszy adres
 
@@ -24,8 +28,9 @@ byłaby pod `https://tymonekk.github.io/nazwa-repozytorium/`.
 - **Własna domena** (np. `369shoter.pl`) kosztuje zwykle kilkadziesiąt zł rocznie.
   Wpiszesz ją w Settings -> Pages -> Custom domain.
 
-Jeśli zmienisz adres strony, zmień go też w dwóch liniach `og:url` i `og:image`
-w `index.html`, żeby podgląd linku (Discord, Messenger) działał.
+Jeśli zmienisz adres strony, zmień go wszędzie, gdzie występuje `369shoter.github.io`: w `index.html`
+(`canonical`, `og:url`, `og:image`, `twitter:image`, dane dla Google), `sitemap.xml`, `robots.txt` oraz
+w stałych `ORIGIN` i `REPO` w `worker/admin-api.js` (potem wklej Workera w Cloudflare).
 
 ## Automatyczne odświeżanie
 
@@ -77,9 +82,9 @@ zostanie policzona, więc liczby są zaniżone.
 ## Udostępnianie klipów
 
 W odtwarzaczu jest przycisk **Kopiuj link** (na wąskim telefonie sama ikona, potwierdzenie pokazuje się na filmie).
-Skopiowany adres to zwykle `https://tymonekk.github.io/k/NUMER_FILMU/`. Wklejony na Discordzie, w Messengerze itp.
+Skopiowany adres to zwykle `https://369shoter.github.io/k/NUMER_FILMU/`. Wklejony na Discordzie, w Messengerze itp.
 pokazuje **okładkę i tytuł właśnie tego klipu** (obraz 1200x630 z okładką, tytułem i liczbą wyświetleń), a kliknięty
-przenosi od razu na stronę z otwartym filmem (`https://tymonekk.github.io/?film=NUMER_FILMU`). Możesz też sam wpisać
+przenosi od razu na stronę z otwartym filmem (`https://369shoter.github.io/?film=NUMER_FILMU`). Możesz też sam wpisać
 `?film=NUMER` na końcu adresu strony: tak otwiera się dowolny film, także spoza list (ukryte w panelu się nie otwierają).
 
 - **Strony `/k/NUMER/`:** `scripts/make_share_pages.py` robi je przy każdej publikacji dla wszystkich filmów z `data/tiktok.js`
@@ -110,14 +115,14 @@ albo w https://search.google.com/test/rich-results. Podgląd linku (Discord, Mes
 Jednorazowo trzeba potwierdzić własność strony w Google Search Console:
 
 1. Wejdź na https://search.google.com/search-console i dodaj zasób typu **Prefiks adresu URL**:
-   `https://tymonekk.github.io/`.
+   `https://369shoter.github.io/`.
 2. Wybierz weryfikację **plikiem HTML**, pobierz plik `googleXXXXXXXX.html` i wrzuć go do głównego
    folderu repozytorium (workflow sam go opublikuje), potem kliknij „Zweryfikuj”.
 3. W zakładce „Mapy witryn” dodaj `sitemap.xml`.
 
 ## Panel admina (`/admin/`)
 
-Adres: `https://tymonekk.github.io/admin/`. Pozwala zmienić bez grzebania w kodzie: nazwę GoatCounter,
+Adres: `https://369shoter.github.io/admin/`. Pozwala zmienić bez grzebania w kodzie: nazwę GoatCounter,
 nick i zaproszenie na Discorda, e-mail, blok z tsxnine.pl, tryb otwierania filmów, liczbę filmów,
 dodać starsze filmy (samym linkiem) i ukryć wybrane filmy. Zapis publikuje stronę w 1-2 minuty.
 
@@ -138,7 +143,7 @@ darmowy Worker w Cloudflare (`worker/admin-api.js`, adres w stałej `WORKER` w `
 tylko w sekretach Cloudflare, nie w przeglądarce. Wejście wymaga hasła i kodu z aplikacji na telefonie, są limity
 błędnych prób, sesja trwa 20 minut (10 minut bezczynności), a serwer jeszcze raz waliduje każdy zapis. Instalacja
 i zarządzanie hasłem: [`worker/README.md`](worker/README.md). Sekrety (hasło, klucz sesji, klucz 2FA) wygenerujesz na
-`https://tymonekk.github.io/admin/setup.html` (działa lokalnie w przeglądarce, niczego nie wysyła).
+`https://369shoter.github.io/admin/setup.html` (działa lokalnie w przeglądarce, niczego nie wysyła).
 
 Pozostałe zabezpieczenia:
 

@@ -3,9 +3,9 @@
 
 Wywolywane w workflow po zlozeniu katalogu _site:  python scripts/make_share_pages.py _site
 
-Link https://tymonekk.github.io/k/NUMER/ wklejony na Discordzie, w Messengerze itp. pokazuje okladke (obraz 1200x630 z
+Link https://369shoter.github.io/k/NUMER/ wklejony na Discordzie, w Messengerze itp. pokazuje okladke (obraz 1200x630 z
 assets/og/NUMER.jpg), tytul i liczbe wyswietlen TEGO klipu, a czlowieka od razu przenosi na strone z otwartym filmem
-(https://tymonekk.github.io/?film=NUMER). Dla filmow, ktorych jeszcze nie ma na tej liscie (swiezo dodanych),
+(https://369shoter.github.io/?film=NUMER). Dla filmow, ktorych jeszcze nie ma na tej liscie (swiezo dodanych),
 przycisk "Kopiuj link" na stronie uzywa adresu Workera (/k/NUMER w Cloudflare), ktory robi to samo na zywo.
 
 Czyta _site/data/tiktok.js, pomija filmy ukryte w panelu admina (_site/data/admin.js). Gdy cos pojdzie nie tak,

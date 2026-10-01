@@ -13,13 +13,13 @@
    Sekrety (Cloudflare -> Worker -> Settings -> Variables and Secrets), wszystkie typu "Secret":
      ADMIN_PASSWORD  haslo do panelu (min. 5 znakow)
      SESSION_SECRET  losowy ciag do podpisywania sesji (min. 32 znaki), wygenerujesz go na /admin/setup.html
-     GITHUB_TOKEN    fine-grained token: tylko repo tymonekk.github.io, Contents: Read and write
+     GITHUB_TOKEN    fine-grained token: wlasciciel 369shoter, tylko repo 369shoter.github.io, Contents: Read and write
      TOTP_SECRET     (opcjonalnie, polecane) sekret 2FA w base32 z /admin/setup.html
      GOATCOUNTER_TOKEN  (opcjonalnie) token GoatCounter z uprawnieniem "Read statistics"; wlacza karte statystyk w panelu
    Powiazanie KV (Settings -> Bindings -> KV namespace), nazwa zmiennej: KV. Trzyma liczniki nieudanych logowan. */
 
-const ORIGIN = "https://tymonekk.github.io"; // jedyna strona, ktora moze uzywac tego API
-const REPO = "tymonekk/tymonekk.github.io";
+const ORIGIN = "https://369shoter.github.io"; // jedyna strona, ktora moze uzywac tego API
+const REPO = "369shoter/369shoter.github.io";
 const BRANCH = "main";
 const FILE = "data/admin.js";
 
