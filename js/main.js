@@ -329,16 +329,20 @@
     followers: D.stats && D.stats.followers,
     likes: D.stats && D.stats.likes,
     bestVideo: allVideos.reduce((m, v) => Math.max(m, v.views || 0), 0),
+    // wyswietlenia klipow opublikowanych w ostatnich 7 dniach: wszystkie padly w tym tygodniu, wiec to prawdziwe minimum
+    weekViews: allVideos.reduce((sum, v) => (Date.now() / 1000 - publishedAt(v) <= 7 * 86400 ? sum + (v.views || 0) : sum), 0),
   };
   const statsEl = $("#stats");
   if (statsEl && Array.isArray(C.stats)) {
     C.stats.forEach((s) => {
       const value = (s.source && live[s.source]) || s.value || 0;
+      if (Number.isFinite(s.hideBelow) && value < s.hideBelow) return;
       const num = el("span", { class: "num", text: short(value) });
       num.dataset.target = value;
       const dd = el("dd", {}, [num, el("span", { class: "suffix", text: "+" })]);
       statsEl.append(el("div", { class: "stat" }, [el("dt", { text: s.label }), dd]));
     });
+    statsEl.dataset.n = statsEl.children.length; // 4 liczby: na telefonie uklad 2x2 (css)
   }
 
   /* ---------- Pasek do kolejnego progu obserwujacych ----------

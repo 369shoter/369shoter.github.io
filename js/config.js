@@ -56,9 +56,12 @@ window.SITE_CONFIG = {
   // Liczby pod hero. Strona sama je skróci (3749 -> 3,7K+) i zaokrągla w dół.
   // "source" mówi, skąd brać świeżą wartość: dane z TikToka odświeżają się same
   // (patrz README). "value" to zapas, gdyby danych z TikToka akurat nie było.
+  // "weekViews" to suma wyświetleń klipów opublikowanych w ostatnich 7 dniach (wszystkie padły w tym tygodniu,
+  // więc to uczciwe minimum). "hideBelow" chowa liczbę, gdy jest mniejsza (np. tydzień bez nowych klipów).
   stats: [
     { source: "followers", value: 3749,   label: "obserwujących na TikToku" },
     { source: "likes",     value: 132722, label: "polubień pod filmami" },
+    { source: "weekViews", value: 0,      label: "wyświetleń w ostatnim tygodniu", hideBelow: 10000 },
     { source: "bestVideo", value: 237800, label: "wyświetleń najlepszego filmu" }
   ],
 

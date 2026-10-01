@@ -252,6 +252,15 @@ ul { padding: 0; list-style: none; }
 .stat dd .suffix { color: var(--accent-ink); }
 .stat dt { order: 2; margin-top: 12px; color: var(--muted); font-size: clamp(13px, 1.5vw, 16px); line-height: 1.35; overflow-wrap: anywhere; }
 .stat { display: flex; flex-direction: column; min-width: 0; }
+/* cztery liczby: na komputerze w jednym rzedzie (mniejsza czcionka), na telefonie 2x2 */
+.stats-grid[data-n="4"] { grid-template-columns: repeat(4, 1fr); }
+.stats-grid[data-n="4"] .stat dd { font-size: clamp(40px, 6.4vw, 88px); }
+@media (max-width: 719px) {
+  .stats-grid[data-n="4"] { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid[data-n="4"] .stat dd { font-size: clamp(44px, 13vw, 76px); }
+  .stats-grid[data-n="4"] .stat:nth-child(odd) { border-left: 0; }
+  .stats-grid[data-n="4"] .stat:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
 
 /* ---------- Pasek do kolejnego progu obserwujacych (pod statystykami) ---------- */
 .milestone { margin-top: 20px; display: grid; gap: 10px; }
