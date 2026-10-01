@@ -252,6 +252,9 @@ ul { padding: 0; list-style: none; }
 .stat dd .suffix { color: var(--accent-ink); }
 .stat dt { order: 2; margin-top: 12px; color: var(--muted); font-size: clamp(13px, 1.5vw, 16px); line-height: 1.35; overflow-wrap: anywhere; }
 .stat { display: flex; flex-direction: column; min-width: 0; }
+/* "+287 w tym tygodniu" pod liczba obserwujacych (main.js -> followersGrowth) */
+.stat-delta { order: 3; margin-top: 8px; color: var(--muted); font-size: clamp(12px, 1.35vw, 15px); line-height: 1.35; }
+.stat-delta b { color: var(--accent-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
 /* cztery liczby: na komputerze w jednym rzedzie (mniejsza czcionka), na telefonie 2x2 */
 .stats-grid[data-n="4"] { grid-template-columns: repeat(4, 1fr); }
 .stats-grid[data-n="4"] .stat dd { font-size: clamp(40px, 6.4vw, 88px); }

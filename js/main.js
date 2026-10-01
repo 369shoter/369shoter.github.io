@@ -332,6 +332,22 @@
     // wyswietlenia klipow opublikowanych w ostatnich 7 dniach: wszystkie padly w tym tygodniu, wiec to prawdziwe minimum
     weekViews: allVideos.reduce((sum, v) => (Date.now() / 1000 - publishedAt(v) <= 7 * 86400 ? sum + (v.views || 0) : sum), 0),
   };
+  /* Przyrost obserwujacych: STATIC_DATA.fh to historia [czas, obserwujacy], ktora scripts/update_tiktok.py dopisuje przy kazdym
+     odswiezeniu danych (co kilka godzin). Aktualna liczbe porownujemy z najstarszym punktem z ostatnich 7 dni, wiec przyrost
+     dotyczy najwyzej tygodnia. Gdy historia jest krotsza niz 6 dni, dopisek mowi, od kiedy liczy ("od 29.09"). */
+  function followersGrowth() {
+    const now = Date.now() / 1000;
+    const points = (Array.isArray(STATIC_DATA.fh) ? STATIC_DATA.fh : [])
+      .filter((p) => Array.isArray(p) && Number.isInteger(p[0]) && Number.isInteger(p[1]) && p[0] >= now - 7 * 86400 && p[0] <= now);
+    if (!points.length || !Number.isInteger(live.followers)) return null;
+    const [t, f] = points.reduce((a, b) => (b[0] < a[0] ? b : a));
+    const delta = live.followers - f;
+    if (delta <= 0 || now - t < 20 * 3600) return null;
+    const d = new Date(t * 1000);
+    const since = now - t >= 6 * 86400 ? "w tym tygodniu" : "od " + String(d.getDate()).padStart(2, "0") + "." + String(d.getMonth() + 1).padStart(2, "0");
+    return { delta, since };
+  }
+
   const statsEl = $("#stats");
   if (statsEl && Array.isArray(C.stats)) {
     C.stats.forEach((s) => {
@@ -340,7 +356,9 @@
       const num = el("span", { class: "num", text: short(value) });
       num.dataset.target = value;
       const dd = el("dd", {}, [num, el("span", { class: "suffix", text: "+" })]);
-      statsEl.append(el("div", { class: "stat" }, [el("dt", { text: s.label }), dd]));
+      const growth = s.source === "followers" && C.followersGrowth !== false ? followersGrowth() : null;
+      const delta = growth && el("p", { class: "stat-delta" }, [el("b", { text: "+" + growth.delta.toLocaleString("pl-PL") }), document.createTextNode(" " + growth.since)]);
+      statsEl.append(el("div", { class: "stat" }, [el("dt", { text: s.label }), dd, delta]));
     });
     statsEl.dataset.n = statsEl.children.length; // 4 liczby: na telefonie uklad 2x2 (css)
   }

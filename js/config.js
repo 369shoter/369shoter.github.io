@@ -70,6 +70,9 @@ window.SITE_CONFIG = {
   // Puste "" wyłącza tę funkcję: strona pokazuje wtedy dane z ostatniej publikacji (patrz README).
   liveApi: "https://369-panel.369shoter.workers.dev/live",
 
+  // Dopisek "+287 w tym tygodniu" pod liczbą obserwujących (przyrost z ostatnich 7 dni). false wyłącza.
+  followersGrowth: true,
+
   // "Klip tygodnia" pod statystykami: najczęściej oglądany klip opublikowany w ostatnich 7 dniach.
   // Sam się chowa, gdy w tym tygodniu nie było klipów. false wyłącza.
   weeklyClip: true,

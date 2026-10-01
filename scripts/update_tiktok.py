@@ -7,6 +7,7 @@ Co robi:
   - pobiera okładki nowych filmów do assets/covers/ (potrzebny Pillow),
   - dla świeżych filmów czyta ze strony filmu prawdziwą godzinę publikacji (pole "t"; zaplanowany post
     wychodzi później, niż mówi numer filmu, który oznacza chwilę wgrania),
+  - dopisuje liczbę obserwujących do krótkiej historii (pole "fh"), z której strona liczy przyrost w tygodniu,
   - zapisuje wszystko do data/tiktok.js, które wczytuje strona.
 
 Skrypt nigdy nie psuje strony: jeśli TikTok nie odpowie albo zwróci dziwne dane,
@@ -31,6 +32,10 @@ DATA_FILE = ROOT / "data" / "tiktok.js"
 COVERS = ROOT / "assets" / "covers"
 PUBLISH_LOOKBACK_DAYS = 30  # godzine publikacji sprawdzamy tylko u filmow wgranych w tylu ostatnich dniach
 PUBLISH_FETCH_MAX = 12      # najwyzej tyle stron filmow na jedno odswiezenie (reszta przy nastepnym)
+# Historia liczby obserwujacych ("fh": [czas Unix, obserwujacy]) dla dopisku "+N w tym tygodniu" na stronie.
+FOLLOWERS_KEEP_DAYS = 9     # starsze punkty sa usuwane (strona porownuje z ostatnimi 7 dniami)
+FOLLOWERS_GAP_S = 3 * 3600  # nowy punkt najwyzej co 3 godziny
+FOLLOWERS_SEED = [[1790695859, 3753]]  # pierwszy znany punkt (29.09, z logu publikacji); sam zniknie po 9 dniach
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -262,6 +267,17 @@ def main():
             print(f"statystyki: {stats}")
         else:
             warn("TikTok zwrocil 0 obserwujacych, zostawiam stare statystyki")
+
+    # historia obserwujacych: poprzednie punkty + nowy (gdy statystyki sa swieze i minely 3 godziny od ostatniego)
+    now = int(time.time())
+    points = {}
+    for p in (previous.get("fh") or []) + FOLLOWERS_SEED:
+        if isinstance(p, list) and len(p) == 2 and all(isinstance(x, int) and x > 0 for x in p):
+            points[p[0]] = p[1]
+    if stats and stats["followers"] > 0 and (not points or now - max(points) >= FOLLOWERS_GAP_S):
+        points[now] = stats["followers"]
+    keep = now - FOLLOWERS_KEEP_DAYS * 86400
+    result["fh"] = [[t, f] for t, f in sorted(points.items()) if t >= keep]
 
     try:
         videos = get_videos()
