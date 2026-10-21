@@ -45,6 +45,9 @@ jobs:
           fi
 
       - name: Odswiez dane z TikToka
+        env:
+          # skad odzyskac okladki opublikowane wczesniej (nie ma ich w repozytorium), patrz restore_covers w update_tiktok.py
+          SITE_URL: https://${{ github.repository_owner }}.github.io
         run: |
           pip install --quiet pillow
           python scripts/update_tiktok.py

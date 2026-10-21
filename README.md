@@ -44,7 +44,9 @@ Dane z TikToka (liczby, opisy, wyświetlenia, nowe klipy) trafiają na stronę d
    trzyma się go luźno: w praktyce bywa co kilka godzin) GitHub sam:
 
    - pobiera z publicznego profilu TikToka liczbę obserwujących i polubień,
-   - pobiera listę ostatnich filmów razem z liczbą wyświetleń i okładkami (okładki nowych filmów trafiają na stronę na stałe),
+   - pobiera listę ostatnich filmów razem z liczbą wyświetleń i okładkami. Okładek nie ma w repozytorium: przy każdej publikacji
+     skrypt odzyskuje je z działającej strony, a brakujące bierze ze strony filmu na TikToku (do 60 na raz, reszta przy następnej publikacji),
+   - usuwa ze strony filmy, o których TikTok mówi, że już ich nie ma (usunięte z konta),
    - składa stronę na nowo i ją publikuje.
 
    Publikację możesz też uruchomić ręcznie: **Actions** -> **Publikacja strony** -> **Run workflow**.
@@ -255,7 +257,8 @@ prosto na GitHubie (ikona ołówka).
 2. Długi numer na końcu to `id`. Dopisz linijkę w `videos`:
    `{ id: "7671803781754965281", title: "Tytuł filmu", views: 237800 },`
 3. Opcjonalnie dodaj okładkę jako `assets/covers/<id>.webp` (pionowa, ok. 360x640 px).
-   Bez okładki karta pokaże ciemne tło, a film i tak się odtworzy po kliknięciu.
+   Bez okładki karta pokaże zastępczą okładkę (tło w kolorach strony z tytułem filmu), a film i tak się odtworzy po kliknięciu.
+   Tak samo wygląda karta filmu, którego okładki nie da się pobrać (np. klip z ograniczeniami na TikToku, widoczny tylko po zalogowaniu).
 
 ## Gdyby odświeżanie przestało działać
 

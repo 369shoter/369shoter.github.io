@@ -125,7 +125,8 @@
     for (const f of fresh.videos) {
       const known = byId.get(f.id);
       if (!known) { byId.set(f.id, f); continue; }
-      byId.set(f.id, { ...known, ...(f.title ? { title: f.title } : {}), ...(f.views ? { views: f.views } : {}) });
+      // liveCover: okladka z TikToka, zapas na wypadek braku pliku z okladka na stronie (patrz setCover)
+      byId.set(f.id, { ...known, ...(f.title ? { title: f.title } : {}), ...(f.views ? { views: f.views } : {}), ...(f.cover ? { liveCover: f.cover } : {}) });
     }
     out.videos = [...byId.values()];
     const now = new Date();
@@ -274,7 +275,7 @@
   };
   const newestFirst = (a, b) => (publishedAt(b) - publishedAt(a)) || idDesc(a, b);
   const pool = new Map();
-  (D.videos || []).forEach((v) => pool.set(v.id, { id: v.id, title: v.title, views: v.views, lqip: v.lqip, cover: v.cover, t: v.t }));
+  (D.videos || []).forEach((v) => pool.set(v.id, { id: v.id, title: v.title, views: v.views, lqip: v.lqip, cover: v.cover, liveCover: v.liveCover, t: v.t }));
   (C.videos || []).forEach((v) => {
     const known = pool.get(v.id) || {};
     // tytul z config.js ma pierwszenstwo, liczba wyswietlen: wieksza z dwoch (rosna tylko w gore)
@@ -300,13 +301,37 @@
     return hours >= -1 && hours <= NEW_HOURS;
   };
 
+  /* Okladka filmu: plik ze strony (assets/covers/NUMER.webp, a dla klipu znanego tylko z danych na zywo adres z TikToka).
+     Gdy sie nie wczyta (np. pliku jeszcze nie ma na stronie), probujemy okladki z TikToka z danych na zywo (liveCover),
+     a gdy i tej nie ma, wywolujemy onFail. */
+  function setCover(img, v, onFail) {
+    const sources = [v.cover || "assets/covers/" + v.id + ".webp", v.liveCover].filter((u, i, a) => u && a.indexOf(u) === i);
+    let i = 0;
+    const load = () => {
+      img.referrerPolicy = /^https:/.test(sources[i]) ? "no-referrer" : ""; // TikTok nie musi wiedziec, z jakiej strony przyszlo
+      img.src = sources[i];
+    };
+    img.addEventListener("error", () => {
+      if (++i < sources.length) load();
+      else if (i === sources.length && onFail) onFail(); // tylko raz: gdyby onFail podmienil obrazek na niedzialajacy, nie krecimy sie w kolko
+    });
+    load();
+  }
+
   function videoCard(v, list) {
     const fresh = isNew(v);
     const title = v.title || "Film";
-    const img = el("img", { src: v.cover || "assets/covers/" + v.id + ".webp", alt: "", width: "360", height: "640", loading: "lazy", referrerpolicy: v.cover ? "no-referrer" : undefined });
-    img.addEventListener("error", () => img.remove(), { once: true });
+    const img = el("img", { alt: "", width: "360", height: "640", loading: "lazy" });
     const done = () => img.classList.add("is-loaded");
-    if (img.complete && img.naturalWidth) done(); else img.addEventListener("load", done, { once: true });
+    img.addEventListener("load", done);
+    // brak jakiejkolwiek okladki (np. klip z ograniczeniami na TikToku, ktorego okladki nie da sie pobrac bez logowania):
+    // zamiast pustej karty tlo w kolorach strony z tytulem klipu
+    setCover(img, v, () => {
+      const box = img.parentElement;
+      img.remove();
+      if (box) { box.classList.add("no-cover"); box.prepend(el("span", { class: "vcard-fallback", "aria-hidden": "true", text: v.title || "Klip" })); }
+    });
+    if (img.complete && img.naturalWidth) done();
     const media = el("button", { class: "vcard-media", type: "button", "aria-label": "Odtwórz film: " + title + (fresh ? " (nowy)" : ""), "data-id": v.id, "data-title": title }, [
       img,
       fresh ? el("span", { class: "vbadge", text: "Nowe" }) : null,
@@ -514,8 +539,8 @@
       const v = pick[i];
       const img = shot.querySelector("img");
       if (img) {
-        if (v.cover) img.referrerPolicy = "no-referrer";
-        img.src = v.cover || "assets/covers/" + v.id + ".webp";
+        const original = img.getAttribute("src"); // okladka wpisana w index.html: zostaje, gdyby zadna inna sie nie wczytala
+        setCover(img, v, () => { img.referrerPolicy = ""; img.src = original; });
       }
       shot.setAttribute("role", "button");
       shot.setAttribute("tabindex", "0");
@@ -592,7 +617,7 @@
     const v = playlist[i];
     index = i;
     playing = false;
-    stage.style.backgroundImage = 'url("' + coverOf(v) + '")';
+    stage.style.backgroundImage = [coverOf(v), v.liveCover].filter(Boolean).map((u) => 'url("' + u + '")').join(", ");
     stage.classList.remove("is-ready");
     setFallback(false);
     dlgLink.href = fallbackLink.href = videoUrl(v.id);

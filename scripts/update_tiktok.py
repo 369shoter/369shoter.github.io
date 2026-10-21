@@ -32,6 +32,7 @@ DATA_FILE = ROOT / "data" / "tiktok.js"
 COVERS = ROOT / "assets" / "covers"
 PUBLISH_LOOKBACK_DAYS = 30  # godzine publikacji sprawdzamy tylko u filmow wgranych w tylu ostatnich dniach
 PUBLISH_FETCH_MAX = 12      # najwyzej tyle stron filmow na jedno odswiezenie (reszta przy nastepnym)
+COVER_FETCH_MAX = 60        # najwyzej tyle brakujacych okladek ze stron filmow na jedno odswiezenie (reszta przy nastepnym)
 # Historia liczby obserwujacych ("fh": [czas Unix, obserwujacy]) dla dopisku "+N w tym tygodniu" na stronie.
 FOLLOWERS_KEEP_DAYS = 9     # starsze punkty sa usuwane (strona porownuje z ostatnimi 7 dniami)
 FOLLOWERS_GAP_S = 3 * 3600  # nowy punkt najwyzej co 3 godziny
@@ -205,17 +206,42 @@ def read_admin_video_ids():
 
 
 def fetch_video_info(vid):
-    """Tytul, adres okladki i liczba wyswietlen dowolnego publicznego filmu po jego numerze."""
-    oembed = json.loads(fetch("https://www.tiktok.com/oembed?url=https://www.tiktok.com/@_/video/" + vid))
-    info = {"id": vid, "title": clean_title(oembed.get("title")), "views": 0, "_cover": oembed.get("thumbnail_url")}
+    """Tytul, adres okladki, liczba wyswietlen i godzina publikacji filmu ze strony filmu na TikToku.
+    (Wczesniej z oEmbed, ale TikTok przestal tam podawac okladke i tytul.)"""
+    item = fetch_item(vid)
+    video = item.get("video") or {}
+    stats = item.get("stats") or {}
+    views = stats.get("playCount") or (item.get("statsV2") or {}).get("playCount") or 0
+    info = {"id": vid, "title": clean_title(item.get("desc")), "views": int(views), "_cover": video.get("originCover") or video.get("cover")}
     try:
-        page = fetch(f"https://www.tiktok.com/embed/v2/{vid}")
-        m = re.search(r'"playCount":(\d+)', page)
-        if m:
-            info["views"] = int(m.group(1))
-    except Exception:  # noqa: BLE001 - liczba wyswietlen jest dodatkiem
+        info["_t"] = item_publish_time(vid, item)
+    except Exception:  # noqa: BLE001 - godzina publikacji jest dodatkiem
         pass
     return info
+
+
+def restore_covers(ids):
+    """Okladki nie sa w repozytorium, tylko na opublikowanej stronie: przed pobieraniem nowych sciagamy z niej te, ktore juz tam sa
+    (adres strony w zmiennej SITE_URL, ustawia ja workflow). Bez tego kazda publikacja gubilaby okladki starszych filmow."""
+    site = os.environ.get("SITE_URL", "").rstrip("/")
+    if not site.startswith("https://"):
+        return 0
+    COVERS.mkdir(parents=True, exist_ok=True)
+    restored = 0
+    for vid in ids:
+        target = COVERS / f"{vid}.webp"
+        if target.exists():
+            continue
+        try:
+            req = urllib.request.Request(f"{site}/assets/covers/{vid}.webp", headers={"User-Agent": UA})
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                raw = resp.read()
+        except Exception:  # noqa: BLE001 - tej okladki nie ma na stronie, sprobujemy z TikToka
+            continue
+        if raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+            target.write_bytes(raw)
+            restored += 1
+    return restored
 
 
 def id_time(vid):
@@ -223,17 +249,33 @@ def id_time(vid):
     return int(vid) >> 32
 
 
-def fetch_publish_time(vid):
-    """Prawdziwa godzina publikacji filmu (Unix) z jego strony na TikToku. Przy zaplanowanym poscie jest pozniejsza
-    (nawet o kilka dni) niz chwila wgrania zapisana w numerze filmu."""
+class VideoGone(RuntimeError):
+    """TikTok mowi wprost, ze filmu juz nie ma (usuniety z konta)."""
+
+
+def fetch_item(vid):
+    """Dane filmu ze strony filmu na TikToku (opis, okladka, wyswietlenia, godzina publikacji)."""
     page = fetch(f"https://www.tiktok.com/@{USER}/video/{vid}", tries=2)
-    item = script_json(page, "__UNIVERSAL_DATA_FOR_REHYDRATION__")["__DEFAULT_SCOPE__"]["webapp.video-detail"]["itemInfo"]["itemStruct"]
+    detail = script_json(page, "__UNIVERSAL_DATA_FOR_REHYDRATION__")["__DEFAULT_SCOPE__"].get("webapp.video-detail") or {}
+    if detail.get("statusCode") == 10204:  # "item doesn't exist"
+        raise VideoGone("film usuniety z TikToka")
+    item = detail["itemInfo"]["itemStruct"]
     if str(item.get("id")) != vid:
         raise RuntimeError("strona pokazala inny film")
+    return item
+
+
+def item_publish_time(vid, item):
+    """Prawdziwa godzina publikacji (Unix). Przy zaplanowanym poscie jest pozniejsza (nawet o kilka dni) niz chwila wgrania
+    zapisana w numerze filmu."""
     t = int(item.get("createTime") or 0)
     if not id_time(vid) - 300 <= t <= time.time() + 600:
         raise RuntimeError(f"dziwna godzina publikacji {t}")
     return t
+
+
+def fetch_publish_time(vid):
+    return item_publish_time(vid, fetch_item(vid))
 
 
 def read_previous():
@@ -298,21 +340,39 @@ def main():
                     info["extra"] = True
                     merged[vid] = info
                     print(f"  film z panelu {vid}: {info['title']!r}, {info['views']} wyswietlen")
+                except VideoGone:
+                    warn(f"film {vid} z panelu zostal usuniety z TikToka, pomijam go (usun go tez w panelu)")
                 except Exception as exc:  # noqa: BLE001
                     warn(f"film {vid} z panelu nie pobrany ({exc})")
                 time.sleep(0.4)
+            restored = restore_covers(merged.keys())
+            if restored:
+                print(f"okladki z opublikowanej strony: {restored}")
             result["videos"] = []
+            cover_lookups = 0
+            misses = 0  # nieudane strony filmow z rzedu; po 3 przestajemy pytac w tym przebiegu (TikTok pewnie blokuje)
+            removed = []
             prev_by_id = {v["id"]: v for v in previous.get("videos", [])}
             prev_at = previous.get("at") if isinstance(previous.get("at"), int) else 0
             recent = time.time() - PUBLISH_LOOKBACK_DAYS * 86400
             lookups = 0
             for v in sorted(merged.values(), key=lambda x: int(x["id"]), reverse=True):
-                if not v.get("_cover") and not (COVERS / f"{v['id']}.webp").exists():
-                    # znany film, ktory wypadl z listy embedu, a jego okladki nie ma w repozytorium
+                if not v.get("_cover") and not (COVERS / f"{v['id']}.webp").exists() and cover_lookups < COVER_FETCH_MAX and misses < 3:
+                    # znany film, ktory wypadl z listy embedu, a jego okladki nie ma ani tu, ani na stronie: bierzemy ja ze strony filmu
+                    cover_lookups += 1
                     try:
-                        v["_cover"] = fetch_video_info(v["id"]).get("_cover")
-                    except Exception:  # noqa: BLE001
-                        pass
+                        info = fetch_video_info(v["id"])
+                        v["_cover"] = info.get("_cover")
+                        if info.get("_t"):
+                            v["_t"] = info["_t"]
+                        misses = 0
+                        time.sleep(0.4)
+                    except VideoGone:
+                        removed.append(v["id"])  # usuniety z TikToka: nie pokazujemy go juz na stronie
+                        continue
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"  okladka {v['id']}: strona filmu nie odpowiedziala ({exc})")
+                        misses += 1
                 save_cover(v)
                 item = {"id": v["id"], "title": v["title"], "views": v["views"]}
                 lqip = make_lqip(v["id"])
@@ -323,14 +383,20 @@ def main():
                 # godzina publikacji: znana z poprzednich odswiezen albo ze strony filmu (tylko swieze filmy)
                 old = prev_by_id.get(v["id"], {})
                 t, guess = old.get("t"), bool(old.get("tGuess"))
-                if (not t or guess) and lookups < PUBLISH_FETCH_MAX and id_time(v["id"]) > recent:
+                if v.get("_t") and (not t or guess):
+                    t, guess = v["_t"], False  # juz znana ze strony filmu (pobranej po okladke)
+                if (not t or guess) and lookups < PUBLISH_FETCH_MAX and misses < 3 and id_time(v["id"]) > recent:
                     lookups += 1
                     try:
                         t, guess = fetch_publish_time(v["id"]), False
+                        misses = 0
                         time.sleep(0.4)
+                    except VideoGone:
+                        removed.append(v["id"])
+                        continue
                     except Exception as exc:  # noqa: BLE001 - bez tej godziny strona liczy od numeru filmu
                         print(f"  godzina publikacji {v['id']} nieznana ({exc})")
-                        lookups = PUBLISH_FETCH_MAX  # TikTok nie oddaje stron filmow: nie probuj reszty w tym przebiegu
+                        misses += 1
                 if not t and v["id"] not in prev_by_id and prev_at and recent < id_time(v["id"]) < prev_at:
                     # nowy na liscie, choc wgrany przed poprzednim odswiezeniem: zaplanowany, wyszedl po nim
                     t, guess = prev_at, True
@@ -340,6 +406,8 @@ def main():
                         item["tGuess"] = True  # przyblizona; przy nastepnym odswiezeniu sprobujemy ja doczytac
                 result["videos"].append(item)
             result["at"] = int(time.time())  # chwila, w ktorej lista filmow byla aktualna (main.js liczy od niej nowe filmy)
+            if removed:
+                print(f"usuniete z TikToka, znikaja ze strony: {', '.join(removed)}")
             changed = True
             print(f"filmy: {len(videos)} z embedu, {len(extras)} z panelu, {len(result['videos'])} razem")
         else:
