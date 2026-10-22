@@ -138,8 +138,25 @@ aktualny `admin-api.js` i kliknąć **Deploy**.
   (czas, obserwujący, polubienia) przy wejściu na stronę, najwyżej co 3 godziny, ostatnie 900 punktów (ok. 100 dni).
   Panel pokazuje to jako wykres (`GET /history`, tylko po zalogowaniu). Bez odwiedzin nie ma nowych punktów. Nic nie
   trzeba konfigurować, ale powiązanie KV musi być (patrz krok 5).
-- Nowy klip (jeszcze bez własnej okładki w repozytorium) pokazuje okładkę prosto z serwerów TikToka.
+- Nowy klip (jeszcze bez własnej okładki na stronie) pokazuje okładkę prosto z serwerów TikToka.
   Po najbliższej publikacji okładka trafia do strony na stałe.
+
+### 10. Nowy klip: od razu publikacja strony (żeby okładka zapisała się na stałe)
+
+Okładka klipu zapisuje się na stronie na stałe dopiero przy publikacji, a ta z harmonogramu GitHuba bywa co kilka godzin.
+Gdy TikTok w tym czasie ograniczy klip (np. widoczny tylko po zalogowaniu), okładki już nie da się pobrać. Dlatego Worker,
+gdy zobaczy na TikToku klip, którego nie ma jeszcze na opublikowanej stronie, sam uruchamia publikację: zapisuje w repozytorium
+plik `nowy-klip.txt` (każda zmiana w repozytorium uruchamia publikację). Używa tego samego tokena co panel (`GITHUB_TOKEN`,
+uprawnienie Contents), więc nie trzeba nic dodawać. Najwyżej raz na 15 minut, każdy klip tylko raz (pamięta je w KV).
+
+Sprawdza to przy każdym świeżym odczycie z TikToka, czyli przy wejściach na stronę. Żeby działało też bez odwiedzin,
+ustaw harmonogram (raz):
+
+1. Cloudflare: **Workers & Pages** -> Twój Worker (np. `369-panel`) -> **Settings** -> **Triggers** -> **Cron Triggers** -> **Add**.
+2. Wpisz `*/10 * * * *` (co 10 minut) i zapisz.
+
+Po wrzuceniu klipu na TikToka strona publikuje się więc w ciągu ok. 10-15 minut, a okładka zostaje na niej na stałe,
+nawet jeśli TikTok później ograniczy klip. Plik `nowy-klip.txt` w repozytorium możesz zostawić w spokoju.
 
 ## Zmiana hasła, wylogowanie wszystkich
 

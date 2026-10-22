@@ -9,6 +9,9 @@
    patrz "Dane z TikToka na zywo" nizej. Nie wymaga zadnych sekretow. Przy okazji zapisuje w KV historie liczby obserwujacych
    (co najmniej 3 godziny odstepu), ktora panel pokazuje jako wykres (GET /history, za haslem). Publiczny GET /k/<numer filmu>
    oddaje strone z podgladem konkretnego klipu (okladka i tytul na Discordzie itp.) i przenosi na strone z otwartym filmem.
+   Gdy na TikToku pojawi sie klip, ktorego nie ma jeszcze na stronie, Worker sam uruchamia publikacje strony (patrz "Nowy klip"
+   nizej), zeby jego okladka od razu zapisala sie na stale. Sprawdza to przy wejsciach na strone i, jesli ustawisz Cron Trigger
+   (Settings -> Triggers -> Cron Triggers, dokladny wpis w worker/README.md), co 10 minut.
 
    Sekrety (Cloudflare -> Worker -> Settings -> Variables and Secrets), wszystkie typu "Secret":
      ADMIN_PASSWORD  haslo do panelu (min. 5 znakow)
@@ -483,6 +486,10 @@ async function getLiveEntry(env, ctx) {
       const rec = recordHistory(env, body.stats, now);
       if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(rec); else await rec;
     }
+    if (ok) {
+      const check = publishOnNewClip(env, body);
+      if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(check); else await check;
+    }
     if (cache) {
       const put = cache.put(key, new Response(JSON.stringify(body), {
         headers: { "content-type": "application/json", "cache-control": "public, max-age=" + ttl },
@@ -491,6 +498,53 @@ async function getLiveEntry(env, ctx) {
     }
   }
   return { entry, source };
+}
+
+/* ---------- Nowy klip: od razu publikacja strony ----------
+   Okladka klipu zapisuje sie na stale dopiero przy publikacji strony, a ta z harmonogramu GitHuba bywa co kilka godzin.
+   Gdy TikTok w tym czasie ograniczy klip (widoczny tylko po zalogowaniu), okladki juz sie nie pobierze. Dlatego po kazdym
+   swiezym odczycie z TikToka Worker porownuje liste klipow z opublikowana strona (data/tiktok.js) i gdy widzi nowy klip,
+   zapisuje w repozytorium plik NEW_CLIP_FILE. Kazda zmiana w repozytorium uruchamia publikacje (ten sam token co panel,
+   uprawnienie Contents). Najwyzej raz na NEW_CLIP_GAP_MS, a kazdy klip tylko raz (pamieta je w KV pod NEW_CLIP_KEY). */
+const NEW_CLIP_FILE = "nowy-klip.txt";
+const NEW_CLIP_KEY = "newclip";
+const NEW_CLIP_GAP_MS = 15 * 60e3;
+
+async function publishedIds(env) {
+  const r = await fetch(allowedOrigin(env) + "/data/tiktok.js?w=" + Math.floor(Date.now() / 60e3), {
+    headers: { "user-agent": "369shoter-worker" },
+    signal: AbortSignal.timeout(6000),
+  });
+  if (!r.ok) throw new Error("strona-" + r.status);
+  const ids = new Set();
+  for (const m of (await r.text()).matchAll(/"id":\s*"(\d{15,25})"/g)) ids.add(m[1]);
+  return ids;
+}
+
+async function publishOnNewClip(env, body) {
+  if (!env.KV || !env.GITHUB_TOKEN || !body || !Array.isArray(body.videos) || !body.videos.length) return;
+  try {
+    const now = Date.now();
+    const state = (await env.KV.get(NEW_CLIP_KEY, "json")) || {};
+    if (Number.isFinite(state.at) && now - state.at < NEW_CLIP_GAP_MS) return;
+    const published = await publishedIds(env);
+    if (published.size < 3) return; // nie udalo sie przeczytac strony: nic nie robimy
+    const done = new Set(Array.isArray(state.ids) ? state.ids.filter((id) => ID_RE.test(id)) : []);
+    const fresh = body.videos.map((v) => v.id).filter((id) => ID_RE.test(id) && !published.has(id) && !done.has(id));
+    if (!fresh.length) return;
+    await env.KV.put(NEW_CLIP_KEY, JSON.stringify({ at: now, ids: [...done].slice(-50) })); // blokada przed drugim zapisem naraz
+    const cur = await gh(env, `/repos/${REPO}/contents/${NEW_CLIP_FILE}?ref=${BRANCH}`);
+    const sha = cur.ok ? (await cur.json()).sha : null;
+    const text = "Plik zapisuje Worker (worker/admin-api.js), gdy zobaczy na TikToku nowy klip: ta zmiana uruchamia publikacje strony,\n"
+      + "zeby okladka klipu od razu zapisala sie na stale. Mozna go zostawic w spokoju.\n\n"
+      + new Date(now).toISOString() + "\n" + fresh.join("\n") + "\n";
+    const put = await gh(env, `/repos/${REPO}/contents/${NEW_CLIP_FILE}`, {
+      method: "PUT",
+      body: JSON.stringify({ message: "Nowy klip na TikToku: publikacja strony", content: b64Encode(text), branch: BRANCH, ...(sha ? { sha } : {}) }),
+    });
+    // udany zapis: te klipy sa juz zalatwione; nieudany: sprobujemy znowu po NEW_CLIP_GAP_MS
+    if (put.ok) await env.KV.put(NEW_CLIP_KEY, JSON.stringify({ at: now, ids: [...done, ...fresh].slice(-50) }));
+  } catch (_) { /* dodatek: blad nie moze zepsuc /live */ }
 }
 
 async function handleLive(env, ctx) {
@@ -706,5 +760,11 @@ export default {
       return handleStats(request, env);
     }
     return reply(env, { error: "Nie znaleziono." }, 404);
+  },
+
+  // Cron Trigger (Settings -> Triggers -> Cron Triggers, np. */10 * * * *): swiezy odczyt z TikToka bez czekania na odwiedziny,
+  // a przy nim (getLiveEntry) zapis historii obserwujacych i sprawdzenie, czy jest nowy klip do opublikowania.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(getLiveEntry(env, ctx).catch(() => {}));
   },
 };

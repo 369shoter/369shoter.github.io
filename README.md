@@ -47,6 +47,8 @@ Dane z TikToka (liczby, opisy, wyświetlenia, nowe klipy) trafiają na stronę d
    - pobiera listę ostatnich filmów razem z liczbą wyświetleń i okładkami. Okładek nie ma w repozytorium: przy każdej publikacji
      skrypt odzyskuje je z działającej strony, a brakujące bierze ze strony filmu na TikToku (do 60 na raz, reszta przy następnej publikacji),
    - usuwa ze strony filmy, o których TikTok mówi, że już ich nie ma (usunięte z konta),
+   - po wrzuceniu nowego klipu publikacja rusza od razu (w ciągu ok. 10-15 minut), bo uruchamia ją Worker, gdy zobaczy klip, którego
+     nie ma jeszcze na stronie (patrz krok 10 w [`worker/README.md`](worker/README.md)); dzięki temu okładka zapisuje się na stałe od razu,
    - składa stronę na nowo i ją publikuje.
 
    Publikację możesz też uruchomić ręcznie: **Actions** -> **Publikacja strony** -> **Run workflow**.
