@@ -149,14 +149,17 @@ gdy zobaczy na TikToku klip, którego nie ma jeszcze na opublikowanej stronie, s
 plik `nowy-klip.txt` (każda zmiana w repozytorium uruchamia publikację). Używa tego samego tokena co panel (`GITHUB_TOKEN`,
 uprawnienie Contents), więc nie trzeba nic dodawać. Najwyżej raz na 15 minut, każdy klip tylko raz (pamięta je w KV).
 
-Sprawdza to przy każdym świeżym odczycie z TikToka, czyli przy wejściach na stronę. Żeby działało też bez odwiedzin,
-ustaw harmonogram (raz):
+Sprawdza to co 10 minut z harmonogramu Cloudflare, który trzeba raz ustawić (bez niego ta funkcja nie działa):
 
 1. Cloudflare: **Workers & Pages** -> Twój Worker (np. `369-panel`) -> **Settings** -> **Triggers** -> **Cron Triggers** -> **Add**.
 2. Wpisz `*/10 * * * *` (co 10 minut) i zapisz.
 
 Po wrzuceniu klipu na TikToka strona publikuje się więc w ciągu ok. 10-15 minut, a okładka zostaje na niej na stałe,
 nawet jeśli TikTok później ograniczy klip. Plik `nowy-klip.txt` w repozytorium możesz zostawić w spokoju.
+
+Wklejanie na telefonie, gdy nie da się zaznaczyć całego kodu w edytorze Cloudflare: cała ta funkcja jest na samym końcu
+`admin-api.js`, od linijki `// Cron Trigger co 10 minut` do końca pliku. W starszej wersji usuń ostatnią linijkę (`};`)
+i w jej miejsce wklej ten fragment, potem **Deploy**.
 
 ## Zmiana hasła, wylogowanie wszystkich
 
