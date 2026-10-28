@@ -1,5 +1,5 @@
 Plik zapisuje Worker (worker/admin-api.js), gdy zobaczy na TikToku nowy klip: ta zmiana uruchamia publikacje strony,
 zeby okladka klipu od razu zapisala sie na stale. Mozna go zostawic w spokoju.
 
-2026-10-25T15:10:11.202Z
-7695903942827445537
+2026-10-28T23:00:11.827Z
+7701849376976620832
