@@ -382,7 +382,7 @@
       num.dataset.target = value;
       const dd = el("dd", {}, [num, el("span", { class: "suffix", text: "+" })]);
       const growth = s.source === "followers" && C.followersGrowth !== false ? followersGrowth() : null;
-      const delta = growth && el("p", { class: "stat-delta" }, [el("b", { text: "+" + growth.delta.toLocaleString("pl-PL") }), document.createTextNode(" " + growth.since)]);
+      const delta = growth && el("dd", { class: "stat-delta" }, [el("b", { text: "+" + growth.delta.toLocaleString("pl-PL") }), document.createTextNode(" " + growth.since)]);
       statsEl.append(el("div", { class: "stat" }, [el("dt", { text: s.label }), dd, delta]));
     });
     statsEl.dataset.n = statsEl.children.length; // 4 liczby: na telefonie uklad 2x2 (css)
