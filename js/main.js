@@ -391,34 +391,109 @@
   /* ---------- Pasek do kolejnego progu obserwujacych ----------
      "Do 5K obserwujacych brakuje 1,1K" plus pasek postepu i link do TikToka. Prog to najblizsza okragla wartosc powyzej
      aktualnej liczby (lista nizej). Liczba jest ta sama co w statystykach, wiec na zywo z Workera albo z ostatniej publikacji.
+     Przez dobe po przekroczeniu progu pasek swietuje: "Jest 7,5K obserwujacych! Dzieki", pelny pasek i konfetti (raz na wizyte).
      config.js -> milestone: false wylacza. */
-  let milestoneReveal = null; // ustawia milestone(): odliczanie liczby, uruchamiane, gdy pasek wjezdza na ekran
+  let milestoneReveal = null; // ustawia milestone(): animacja uruchamiana, gdy pasek wjezdza na ekran
+
+  /* Kiedy liczba obserwujacych pierwszy raz przekroczyla prog: historia STATIC_DATA.fh (patrz followersGrowth) siega 9 dni wstecz,
+     wiec starsze przekroczenia nie maja tu punktu ponizej progu i wychodzi null. Gdy historia jeszcze nie ma punktu powyzej
+     progu, a liczba na zywo juz tak, prog padl po ostatnim zapisie, czyli przed chwila (o ile historia jest swieza). */
+  function crossedAt(level) {
+    const now = Date.now() / 1000;
+    const pts = (Array.isArray(STATIC_DATA.fh) ? STATIC_DATA.fh : [])
+      .filter((p) => Array.isArray(p) && Number.isInteger(p[0]) && Number.isInteger(p[1]) && p[0] <= now)
+      .sort((a, b) => a[0] - b[0]);
+    for (let i = 1; i < pts.length; i++) if (pts[i - 1][1] < level && pts[i][1] >= level) return pts[i][0];
+    const last = pts[pts.length - 1];
+    return last && last[1] < level && now - last[0] <= 86400 ? now : null;
+  }
+
+  /* Konfetti: kilkadziesiat kolorowych paskow wylatuje z punktu (x, y) w gore i opada, kolyszac sie (Web Animations, bez bibliotek).
+     Warstwa jest przyklejona do okna, nie lapie klikniec i znika po animacji. */
+  function confetti(x, y) {
+    if (!Element.prototype.animate) return;
+    const layer = el("div", { class: "confetti", "aria-hidden": "true" });
+    const colors = ["var(--accent)", "#b9f5a0", "#ffffff", "#2f9e12", "#e4ff7a"];
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const anims = [];
+    for (let i = 0; i < 46; i++) {
+      const w = rnd(6, 9), h = Math.random() < 0.3 ? w : rnd(10, 15);
+      const p = el("i");
+      p.style.cssText = `left:${x - w / 2}px;top:${y - h / 2}px;width:${w}px;height:${h}px;background:${colors[i % colors.length]}`;
+      layer.append(p);
+      // lot z oporem powietrza: szybki wyrzut w gore (bardziej w lewo, nad pasek), potem powolne opadanie
+      const ang = rnd(-168, -38) * Math.PI / 180, speed = rnd(520, 1050), tau = 0.32, g = 800;
+      const vx = Math.cos(ang) * speed, vy = Math.sin(ang) * speed;
+      const dur = rnd(1.9, 2.6), spin = rnd(-900, 900), sway = rnd(2, 4);
+      const frames = [];
+      for (let k = 0; k <= 12; k++) {
+        const t = (dur * k) / 12, e = 1 - Math.exp(-t / tau);
+        // os y w dol: predkosc dazy do g * tau (powolne opadanie), poczatkowy wyrzut w gore wygasa
+        const dx = vx * tau * e + Math.sin(t * sway * 2) * 14, dy = g * tau * t + (vy - g * tau) * tau * e;
+        frames.push({
+          transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) rotate(${(spin * t / dur).toFixed(0)}deg) scaleY(${Math.cos(t * sway * 3).toFixed(2)})`,
+          opacity: k < 9 ? 1 : (12 - k) / 4,
+        });
+      }
+      anims.push(p.animate(frames, { duration: dur * 1000, easing: "linear", fill: "forwards" }));
+    }
+    document.body.append(layer);
+    Promise.all(anims.map((a) => a.finished)).catch(() => {}).then(() => layer.remove());
+  }
+
   (function milestone() {
     const box = $("#milestone");
     const followers = live.followers;
     if (!box || C.milestone === false || !Number.isInteger(followers) || followers <= 0) return;
-    const goal = [1e3, 2500, 5e3, 7500, 1e4, 15e3, 25e3, 5e4, 75e3, 1e5, 15e4, 25e4, 5e5, 75e4, 1e6].find((g) => g > followers);
-    if (!goal) return;
+    const steps = [1e3, 2500, 5e3, 7500, 1e4, 15e3, 25e3, 5e4, 75e3, 1e5, 15e4, 25e4, 5e5, 75e4, 1e6];
+    const goal = steps.find((g) => g > followers);
+    const passed = steps.filter((g) => g <= followers).pop();
+    const when = passed ? crossedAt(passed) : null;
+    const party = when !== null && Date.now() / 1000 - when <= 86400;
+    if (!goal && !party) return;
     const fmt = (n) => n.toLocaleString("pl-PL", { useGrouping: "always" });
-    const missingEl = el("b", { text: fmt(goal - followers) });
-    $("#milestone-text").append("Do ", el("b", { class: "hl", text: short(goal) }), " obserwujących brakuje ", missingEl);
     const bar = $("#milestone-bar");
-    bar.setAttribute("aria-valuemax", String(goal));
-    bar.setAttribute("aria-valuenow", String(followers));
-    bar.setAttribute("aria-label", short(followers) + " z " + short(goal) + " obserwujących");
-    box.style.setProperty("--p", Math.min(1, followers / goal).toFixed(4)); // dziedziczy pasek i kropka na jego koncu
-    box.hidden = false;
 
-    // Gdy pasek wjezdza na ekran, liczba "brakuje" odlicza od progu w dol do prawdziwej wartosci (razem z wypelnieniem paska).
-    milestoneReveal = () => {
-      const start = performance.now() + 350, dur = 1900;
-      missingEl.textContent = fmt(goal);
-      (function tick(now) {
-        const t = Math.max(0, Math.min(1, (now - start) / dur));
-        missingEl.textContent = fmt(t < 1 ? Math.round(goal - followers * (1 - Math.pow(1 - t, 3))) : goal - followers);
-        if (t < 1) requestAnimationFrame(tick);
-      })(performance.now());
-    };
+    if (party) {
+      $("#milestone-text").append("Jest ", el("b", { class: "hl", text: short(passed) }), " obserwujących! Dzięki 💚");
+      box.classList.add("is-party");
+      bar.setAttribute("aria-valuemax", String(passed));
+      bar.setAttribute("aria-valuenow", String(passed));
+      bar.setAttribute("aria-label", "Cel " + short(passed) + " obserwujących osiągnięty");
+      box.style.setProperty("--p", "1");
+      // konfetti strzela z konca paska, gdy dojedzie do niego wypelnienie; raz na wizyte i nigdy przy ograniczonym ruchu
+      milestoneReveal = () => {
+        if (reduceMotion) return;
+        try {
+          const key = "369-konfetti-" + passed;
+          if (sessionStorage.getItem(key)) return;
+          sessionStorage.setItem(key, "1");
+        } catch (_) { /* bez sessionStorage konfetti po prostu poleci przy kazdym wejsciu */ }
+        setTimeout(() => {
+          const r = bar.getBoundingClientRect();
+          if (r.bottom > 0 && r.top < innerHeight) confetti(r.right - 4, r.top + r.height / 2);
+        }, 2050);
+      };
+    } else {
+      const missingEl = el("b", { text: fmt(goal - followers) });
+      $("#milestone-text").append("Do ", el("b", { class: "hl", text: short(goal) }), " obserwujących brakuje ", missingEl);
+      bar.setAttribute("aria-valuemax", String(goal));
+      bar.setAttribute("aria-valuenow", String(followers));
+      bar.setAttribute("aria-label", short(followers) + " z " + short(goal) + " obserwujących");
+      box.style.setProperty("--p", Math.min(1, followers / goal).toFixed(4)); // dziedziczy pasek i kropka na jego koncu
+
+      // Gdy pasek wjezdza na ekran, liczba "brakuje" odlicza od progu w dol do prawdziwej wartosci (razem z wypelnieniem paska).
+      milestoneReveal = () => {
+        const start = performance.now() + 350, dur = 1900;
+        missingEl.textContent = fmt(goal);
+        (function tick(now) {
+          const t = Math.max(0, Math.min(1, (now - start) / dur));
+          missingEl.textContent = fmt(t < 1 ? Math.round(goal - followers * (1 - Math.pow(1 - t, 3))) : goal - followers);
+          if (t < 1) requestAnimationFrame(tick);
+        })(performance.now());
+      };
+    }
+    box.hidden = false;
     // polysk i pulsowanie kropki dzialaja tylko, gdy pasek jest widoczny (oszczedza baterie)
     if ("IntersectionObserver" in window) {
       new IntersectionObserver(([e]) => box.classList.toggle("is-visible", e.isIntersecting), { threshold: 0.2 }).observe(box);

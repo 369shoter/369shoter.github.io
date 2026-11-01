@@ -331,6 +331,10 @@ ul { padding: 0; list-style: none; }
 .milestone.in .milestone-tip::after { scale: 1; transition: scale .4s var(--ease) 2s; }
 .milestone-tip::before { border: 2px solid var(--accent); opacity: 0; }
 .milestone.in.is-visible .milestone-tip::before { animation: ping 1.8s ease-out 2.4s infinite; }
+/* Swietowanie progu (doba po przekroczeniu, patrz main.js): jasniejszy napis, a konfetti leci z warstwy .confetti */
+.milestone.is-party .milestone-text { color: var(--text); }
+.confetti { position: fixed; inset: 0; z-index: 90; overflow: hidden; pointer-events: none; }
+.confetti i { position: absolute; border-radius: 2px; will-change: transform, opacity; }
 
 /* ---------- Kafelki z linkami ---------- */
 .links .h2 { margin-bottom: clamp(28px, 4vw, 48px); }
