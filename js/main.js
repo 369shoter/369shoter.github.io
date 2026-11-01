@@ -1105,9 +1105,13 @@
       b.setAttribute("data-goatcounter-title", "Film: " + (b.dataset.title || b.dataset.id));
     });
 
+    // Konkretna wersja skryptu z suma kontrolna (SRI, wartosc z https://www.goatcounter.com/help/countjs-versions): gdyby ktos podmienil
+    // plik na serwerze GoatCountera, przegladarka go nie uruchomi (przestana liczyc sie tylko statystyki, strona dziala dalej).
     const s = document.createElement("script");
     s.async = true;
-    s.src = "https://gc.zgo.at/count.js";
+    s.crossOrigin = "anonymous";
+    s.integrity = "sha384-atnOLvQb9t+jTSipvd75X2yginT4PjVbqDdlJAmxMm+wYElFmeR6EmLP5bYeoRVQ";
+    s.src = "https://gc.zgo.at/count.v5.js";
     s.dataset.goatcounter = "https://" + code + ".goatcounter.com/count";
     document.head.append(s);
 
