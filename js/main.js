@@ -318,6 +318,9 @@
     load();
   }
 
+  // rozmyty podglad (mikro-miniatura): tylko poprawny obraz webp w data: URI, ktory sami wygenerowalismy
+  const lqipOk = (v) => typeof v.lqip === "string" && v.lqip.length < 2500 && /^data:image\/webp;base64,[A-Za-z0-9+\/=]+$/.test(v.lqip);
+
   function videoCard(v, list) {
     const fresh = isNew(v);
     const title = v.title || "Film";
@@ -337,10 +340,7 @@
       fresh ? el("span", { class: "vbadge", text: "Nowe" }) : null,
       el("span", { class: "play" }, [icon("play")]),
     ]);
-    // rozmyty podglad (mikro-miniatura): tylko poprawny obraz webp w data: URI, ktory sami wygenerowalismy
-    if (typeof v.lqip === "string" && v.lqip.length < 2500 && /^data:image\/webp;base64,[A-Za-z0-9+\/=]+$/.test(v.lqip)) {
-      media.style.setProperty("--lqip", 'url("' + v.lqip + '")');
-    }
+    if (lqipOk(v)) media.style.setProperty("--lqip", 'url("' + v.lqip + '")');
     media.addEventListener("click", () => openPlayer(v, list));
     return el("article", { class: "vcard" }, [
       media,
@@ -597,7 +597,70 @@
     $("#weekly-play").addEventListener("click", () => openPlayer(v, list));
     $("#weekly-tiktok").href = videoUrl(v.id);
     section.hidden = false;
+    weeklyArchive(v, list);
   })();
+
+  /* Archiwum pod Klipem tygodnia: zwyciezcy poprzednich tygodni (poniedzialek-niedziela czasu polskiego), czyli najczesciej
+     ogladany klip opublikowany w danym tygodniu. Liczone z tych samych danych co reszta (publikacja + wyswietlenia), wiec
+     nic osobno nie trzeba zapisywac. Pomija tygodnie bez klipow i tydzien, ktorego zwyciezca jest juz wyzej jako Klip tygodnia.
+     config.js -> weeklyArchive: ile tygodni pokazac (0 wylacza). */
+  function weeklyArchive(current, list) {
+    const box = $("#weekly-past"), ol = $("#weekly-past-list");
+    const max = Number.isInteger(C.weeklyArchive) ? Math.min(C.weeklyArchive, 8) : 4;
+    if (!box || !ol || max <= 0) return;
+    // przesuniecie czasu polskiego wzgledem UTC w danej chwili (lato/zima); bez Intl: strefa przegladarki
+    let fmt = null;
+    try {
+      fmt = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Warsaw", hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
+    } catch (_) { /* zostaje strefa przegladarki */ }
+    const offset = (t) => {
+      if (!fmt) return -new Date(t * 1000).getTimezoneOffset() * 60;
+      const p = {};
+      fmt.formatToParts(new Date(t * 1000)).forEach((x) => { p[x.type] = Number(x.value); });
+      return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) / 1000 - Math.floor(t);
+    };
+    // "czas na zegarku" w Polsce zapisany jak UTC: dzien 0 (1.01.1970) to czwartek, wiec poniedzialek ma (dzien + 3) % 7 == 0
+    const mondayWall = (t) => {
+      const day = Math.floor((t + offset(t)) / 86400);
+      return (day - ((day + 3) % 7)) * 86400;
+    };
+    const thisWeek = mondayWall(Date.now() / 1000);
+    const best = new Map(); // poniedzialek -> najczesciej ogladany klip z tego tygodnia
+    allVideos.forEach((v) => {
+      if (!(v.views > 0)) return;
+      const wk = mondayWall(publishedAt(v));
+      if (wk >= thisWeek) return; // biezacy tydzien to Klip tygodnia wyzej
+      const b = best.get(wk);
+      if (!b || v.views > b.views) best.set(wk, v);
+    });
+    const weeks = [...best.entries()].sort((a, b) => b[0] - a[0]).filter(([, v]) => v.id !== current.id).slice(0, max);
+    if (!weeks.length) return;
+
+    const dm = (d) => d.getUTCDate() + "." + String(d.getUTCMonth() + 1).padStart(2, "0");
+    weeks.forEach(([wk, v]) => {
+      const mon = new Date(wk * 1000), sun = new Date((wk + 6 * 86400) * 1000);
+      const range = (mon.getUTCMonth() === sun.getUTCMonth() ? mon.getUTCDate() : dm(mon)) + "–" + dm(sun); // 19–25.10, 28.09–4.10
+      const img = el("img", { alt: "", width: "120", height: "214", loading: "lazy" });
+      img.addEventListener("load", () => img.classList.add("is-loaded"));
+      setCover(img, v, () => img.remove()); // bez okladki zostaje rozmyty podglad albo tlo
+      if (img.complete && img.naturalWidth) img.classList.add("is-loaded");
+      const cover = el("span", { class: "wpast-cover" }, [img, el("span", { class: "wpast-play" }, [icon("play")])]);
+      if (lqipOk(v)) cover.style.setProperty("--lqip", 'url("' + v.lqip + '")');
+      const btn = el("button", { class: "wpast", type: "button", "data-id": v.id }, [
+        cover,
+        // spacje miedzy czesciami: czytnik ekranu czyta "19–25.10 Tytul 235K wyswietlen", a nie wszystko sklejone (w siatce ich nie widac)
+        el("span", { class: "wpast-body" }, [
+          el("span", { class: "sr-only", text: "Odtwórz klip tygodnia " }),
+          el("span", { class: "wpast-week", text: range }), " ",
+          el("span", { class: "wpast-title", text: v.title || "Film" }), " ",
+          el("span", { class: "wpast-views" }, [el("b", { text: short(v.views) }), document.createTextNode(" wyświetleń")]),
+        ]),
+      ]);
+      btn.addEventListener("click", () => openPlayer(v, list));
+      ol.append(el("li", {}, [btn]));
+    });
+    box.hidden = false;
+  }
 
   /* ---------- Hero: okladki losowane sposrod 6 najlepszych filmow ----------
      Przy kazdym wejsciu (i odswiezeniu) losujemy 3 z 6 najczesciej ogladanych. Potem sie nie zmieniaja.
@@ -1167,6 +1230,7 @@
     mark("#partner-link", "partner", "Strona streamera (blok na dole)");
     mark("#weekly-play, #weekly-media .vcard-media", "klip-tygodnia-odtworz", "Klip tygodnia: odtworzenie");
     mark("#weekly-tiktok", "klip-tygodnia-tiktok", "Klip tygodnia: TikTok");
+    mark(".wpast", "klip-tygodnia-archiwum", "Klip tygodnia: poprzednie tygodnie");
     mark(".vcard-more", "tiktok-wszystkie-filmy", "TikTok (Wszystkie filmy)");
     mark("#player-link, #player-fallback-link", "film-otworz-tiktok", "Film otwarty na TikToku");
     mark("#player-share", "film-kopiuj-link", "Film: skopiowanie linku");

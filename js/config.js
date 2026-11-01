@@ -77,6 +77,9 @@ window.SITE_CONFIG = {
   // Sam się chowa, gdy w tym tygodniu nie było klipów. false wyłącza.
   weeklyClip: true,
 
+  // Pod Klipem tygodnia: zwycięzcy tylu poprzednich tygodni (pon.-niedz.), liczeni z publikacji i wyświetleń. 0 wyłącza.
+  weeklyArchive: 4,
+
   // Filmy z ostatnich tylu godzin dostają na okładce zielony znaczek "Nowe". 0 wyłącza znaczek.
   newBadgeHours: 24,
 
