@@ -1095,6 +1095,7 @@
     mark(".vcard-more", "tiktok-wszystkie-filmy", "TikTok (Wszystkie filmy)");
     mark("#player-link, #player-fallback-link", "film-otworz-tiktok", "Film otwarty na TikToku");
     mark("#player-share", "film-kopiuj-link", "Film: skopiowanie linku");
+    mark("#player-follow", "tiktok-odtwarzacz", "TikTok (Obserwuj w odtwarzaczu)");
     document.querySelectorAll("#footer-links a").forEach((a) => {
       const slug = a.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "link";
       a.setAttribute("data-goatcounter-click", "klik/stopka-" + slug);

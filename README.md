@@ -85,7 +85,7 @@ zostanie policzona, więc liczby są zaniżone.
 
 ## Udostępnianie klipów
 
-W odtwarzaczu jest przycisk **Kopiuj link** (na wąskim telefonie sama ikona, potwierdzenie pokazuje się na filmie).
+W odtwarzaczu jest przycisk **Kopiuj link** (ikona z kopiowaniem obok „Otwórz”, potwierdzenie pokazuje się na filmie).
 Skopiowany adres to zwykle `https://369shoter.github.io/k/NUMER_FILMU/`. Wklejony na Discordzie, w Messengerze itp.
 pokazuje **okładkę i tytuł właśnie tego klipu** (obraz 1200x630 z okładką, tytułem i liczbą wyświetleń), a kliknięty
 przenosi od razu na stronę z otwartym filmem (`https://369shoter.github.io/?film=NUMER_FILMU`). Możesz też sam wpisać
@@ -222,6 +222,7 @@ Każdy efekt jest osobnym kawałkiem kodu, więc jeśli któryś Ci się nie spo
 | „Klip tygodnia” pod statystykami (najczęściej oglądany klip opublikowany w ostatnich 7 dniach, z okładką, liczbą wyświetleń i przyciskami; sam się chowa, gdy w tym tygodniu nie było klipów) | `weeklyClip: false` w `js/config.js`; całkiem: sekcja `#klip-tygodnia` w `index.html`, funkcja `weeklyClip` w `js/main.js` i reguły `.weekly*` w `css/style.css` |
 | Dopisek „+287 w tym tygodniu” pod liczbą obserwujących (przyrost z ostatnich 7 dni; dopóki historia jest krótsza niż tydzień: „od 29.09”). Historię zapisuje `scripts/update_tiktok.py` w danych strony (pole `fh`, punkt najwyżej co 3 godziny, 9 dni wstecz) | `followersGrowth: false` w `js/config.js`; wygląd: reguła `.stat-delta` w `css/style.css` |
 | Pasek „Do 5K obserwujących brakuje…” pod statystykami (wypełnia się z odliczaniem liczby, ma połysk płynący po nim bez przerwy i pulsującą kropkę na końcu; cel sam przeskakuje na kolejny próg: 7,5K, 10K, 15K, 25K, 50K…) | `milestone: false` w `js/config.js`; całkiem: blok `#milestone` w `index.html`, funkcja `milestone` w `js/main.js` i reguły `.milestone*` w `css/style.css`. Samo światło i pulsowanie: `.milestone-fill::after` i `.milestone-tip::before` |
+| Zielony przycisk „Obserwuj” w odtwarzaczu (link do profilu TikTok z `config.js`; obok „Otwórz” i kopiowanie linku, wszystko w jednym rzędzie pod filmem: przy wąskim filmie „Otwórz” to sama strzałka) | element `#player-follow` w `index.html`; wygląd: reguły `.player-actions` i `@container` przy odtwarzaczu w `css/style.css` |
 | Rozmyty podgląd okładek przed załadowaniem | reguły `.vcard-media::before` i `.vcard-media img` (opacity) w `css/style.css`; skrypt `scripts/update_tiktok.py` może dalej zapisywać `lqip` w danych, nic to nie psuje |
 
 ## Animacje i ustawienie systemu „ogranicz ruch”
